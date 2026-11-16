@@ -24,6 +24,7 @@ import type {
 import { HOUR_MS, DAY_MS } from '@/utils/time/durations';
 import { QuotaCard } from '../components/QuotaCard';
 import { QuotaPoolSummary } from '../components/QuotaPoolSummary';
+import { QuotaHistoryPreview } from './QuotaHistoryPreview';
 import type { QuotaFileEntry } from '../logic';
 import type { QuotaCardState } from '../providers';
 import pageStyles from '../QuotaPage.module.scss';
@@ -303,6 +304,8 @@ export function QuotaTierPreview() {
         entries={accounts.map((account) => account.entry)}
         quotaFor={(entry) => accounts.find((account) => account.entry === entry)?.quota}
       />
+
+      <QuotaHistoryPreview showEmails={showEmails} />
 
       <section className={styles.section}>
         <div key={replayKey} className={pageStyles.grid}>

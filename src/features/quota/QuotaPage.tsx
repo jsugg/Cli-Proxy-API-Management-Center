@@ -30,6 +30,7 @@ import { QuotaHeader } from './components/QuotaHeader';
 import { QuotaCard } from './components/QuotaCard';
 import { QuotaTimeline } from './components/QuotaTimeline';
 import { QuotaPoolSummary } from './components/QuotaPoolSummary';
+import { QuotaHistoryPanel } from './history/QuotaHistoryPanel';
 import {
   CARD_ENTRANCE_BUDGET_MS,
   QUOTA_CARD_LAYOUT_KEY,
@@ -460,6 +461,13 @@ export function QuotaPage() {
             <CardLayoutSwitch value={layout} onChange={handleLayoutChange} />
           </div>
         </div>
+
+        <QuotaHistoryPanel
+          enabled={tab === 'all' || tab === 'claude' || tab === 'codex'}
+          provider={tab === 'claude' || tab === 'codex' ? tab : undefined}
+          entries={filesGeneration === sessionGeneration ? entries : []}
+          showEmails={showEmails}
+        />
 
         {error && (
           <div className={styles.errorBanner} role="alert">

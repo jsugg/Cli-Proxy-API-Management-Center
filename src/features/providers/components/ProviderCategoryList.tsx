@@ -7,13 +7,19 @@ interface ProviderCategoryListProps {
   groups: ProviderGroup[];
   activeBrand: ProviderBrand;
   onSelect: (brand: ProviderBrand) => void;
+  subscriptionStatus?: 'loading' | 'ready' | 'error';
 }
 
 const QUICK_FILL_BRAND_ORDER: readonly ProviderBrand[] = ['fennoAI', 'qiniuCloud', 'aiCodeMirror'];
 
 const QUICK_FILL_BRANDS: ReadonlySet<ProviderBrand> = new Set(QUICK_FILL_BRAND_ORDER);
 
-export function ProviderCategoryList({ groups, activeBrand, onSelect }: ProviderCategoryListProps) {
+export function ProviderCategoryList({
+  groups,
+  activeBrand,
+  onSelect,
+  subscriptionStatus = 'ready',
+}: ProviderCategoryListProps) {
   const { t } = useTranslation();
 
   const quickFillGroups = groups
@@ -28,8 +34,11 @@ export function ProviderCategoryList({ groups, activeBrand, onSelect }: Provider
     <div className={styles.list}>
       {items.map((group) => {
         const active = group.id === activeBrand;
-        const total = group.resources.length;
-        const activeCount = group.resources.filter((r) => !r.disabled).length;
+        const total = group.resources.length + (group.subscriptions?.total ?? 0);
+        const activeCount =
+          group.resources.filter((r) => !r.disabled).length + (group.subscriptions?.active ?? 0);
+        const unknown =
+          (group.id === 'claude' || group.id === 'codex') && subscriptionStatus !== 'ready';
         const logo = PROVIDER_LOGOS[group.id];
         const itemClass = [
           styles.item,
@@ -83,11 +92,25 @@ export function ProviderCategoryList({ groups, activeBrand, onSelect }: Provider
                   {t(`providersPage.providerNames.${group.id}`)}
                 </span>
                 <span className={styles.itemSubtitle}>
-                  {t('providersPage.categories.activeCount', {
-                    active: activeCount,
-                    total,
-                  })}
+                  {unknown
+                    ? t(
+                        subscriptionStatus === 'error'
+                          ? 'providersPage.subscriptions.error'
+                          : 'common.loading'
+                      )
+                    : t('providersPage.categories.activeCount', {
+                        active: activeCount,
+                        total,
+                      })}
                 </span>
+                {group.subscriptions ? (
+                  <span className={styles.itemSubtitle}>
+                    {t('providersPage.subscriptions.breakdown', {
+                      subscriptions: group.subscriptions.total,
+                      keys: group.resources.length,
+                    })}
+                  </span>
+                ) : null}
               </span>
             </span>
             <span
@@ -98,7 +121,7 @@ export function ProviderCategoryList({ groups, activeBrand, onSelect }: Provider
                 .filter(Boolean)
                 .join(' ')}
             >
-              {total}
+              {unknown ? '—' : total}
             </span>
           </button>
         );

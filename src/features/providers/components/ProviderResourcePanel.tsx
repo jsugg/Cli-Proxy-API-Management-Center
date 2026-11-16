@@ -96,7 +96,10 @@ export function ProviderResourcePanel({
           ) : null}
         </>
       ) : null}
-      <h2 className={styles.title}>{providerTitle}</h2>
+      <h2 className={styles.title}>
+        {providerTitle}
+        {group.subscriptions ? ` · ${t('providersPage.subscriptions.apiKeys')}` : ''}
+      </h2>
       {showSponsorDashboardLink ? (
         <IconExternalLink className={styles.titleExternalIcon} size={16} />
       ) : null}

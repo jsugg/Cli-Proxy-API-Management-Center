@@ -14,6 +14,7 @@ interface ProviderHeaderCardProps {
   showSummary?: boolean;
   newLabel?: string;
   variant?: 'quickStart';
+  summaryNotice?: string;
   onRefresh: () => void;
   onNew: () => void;
 }
@@ -30,6 +31,7 @@ export function ProviderHeaderCard({
   showSummary = true,
   newLabel,
   variant,
+  summaryNotice,
   onRefresh,
   onNew,
 }: ProviderHeaderCardProps) {
@@ -78,14 +80,17 @@ export function ProviderHeaderCard({
       {showSummary ? (
         <div className={styles.chips}>
           <span className={`${styles.chip} ${styles.chipPrimary}`}>
-            {t('providersPage.header.activeResources', {
-              active: totalActive,
-              total: totalResources,
-            })}
+            {summaryNotice ??
+              t('providersPage.header.activeResources', {
+                active: totalActive,
+                total: totalResources,
+              })}
           </span>
-          <span className={styles.chip}>
-            {t('providersPage.header.providerFamilies', { count: providerFamilies })}
-          </span>
+          {!summaryNotice ? (
+            <span className={styles.chip}>
+              {t('providersPage.header.providerFamilies', { count: providerFamilies })}
+            </span>
+          ) : null}
           <span className={styles.chip}>
             {t('providersPage.header.updatedAt', { time: updatedAtLabel })}
           </span>

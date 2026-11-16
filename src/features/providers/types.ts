@@ -123,6 +123,7 @@ export interface ProviderResource {
 export interface ProviderGroup {
   id: ProviderBrand;
   resources: ProviderResource[];
+  subscriptions?: { total: number; active: number };
 }
 
 export interface ProviderSnapshot {

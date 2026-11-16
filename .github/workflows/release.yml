@@ -37,10 +37,14 @@ jobs:
         env:
           VERSION: ${{ github.ref_name }}
 
+      - name: Verify tests and lint before publishing
+        run: bun run test && bun run lint
+
       - name: Prepare release assets
         run: |
           cd dist
           mv index.html management.html
+          sha256sum management.html > management.html.sha256
           ls -lh management.html
 
       - name: Generate release notes
@@ -60,9 +64,11 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: dist/management.html
+          files: |
+            dist/management.html
+            dist/management.html.sha256
           body_path: release-notes.md
           draft: false
-          prerelease: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

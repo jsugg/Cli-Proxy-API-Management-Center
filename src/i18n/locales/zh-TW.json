@@ -2042,6 +2042,13 @@
     "version": "管理中心版本"
   },
   "providersPage": {
+    "subscriptions": {
+      "title": "訂閱帳戶",
+      "apiKeys": "API 金鑰整合",
+      "breakdown": "{{subscriptions}} 個訂閱 · {{keys}} 個 API 金鑰",
+      "manage": "管理訂閱帳戶",
+      "error": "無法取得訂閱數量，請重新整理後再試。"
+    },
     "behavior": {
       "title": "提供商專屬行為",
       "alphaSearch": "啟用 Alpha Search",

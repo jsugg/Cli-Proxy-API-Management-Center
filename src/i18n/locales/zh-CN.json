@@ -2014,6 +2014,13 @@
     "version": "管理中心版本"
   },
   "providersPage": {
+    "subscriptions": {
+      "title": "订阅账户",
+      "apiKeys": "API 密钥集成",
+      "breakdown": "{{subscriptions}} 个订阅 · {{keys}} 个 API 密钥",
+      "manage": "管理订阅账户",
+      "error": "无法获取订阅数量，请刷新重试。"
+    },
     "behavior": {
       "title": "提供商专属行为",
       "alphaSearch": "启用 Alpha Search",

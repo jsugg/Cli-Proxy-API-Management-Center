@@ -1976,6 +1976,13 @@
     "version": "Phiên bản giao diện quản lý"
   },
   "providersPage": {
+    "subscriptions": {
+      "title": "Tài khoản đăng ký",
+      "apiKeys": "Tích hợp khóa API",
+      "breakdown": "{{subscriptions}} đăng ký · {{keys}} khóa API",
+      "manage": "Quản lý tài khoản đăng ký",
+      "error": "Không tải được số lượng đăng ký. Hãy làm mới để thử lại."
+    },
     "header": {
       "title": "AI Provider",
       "activeResources": "{{active}}/{{total}} tài nguyên đang hoạt động",

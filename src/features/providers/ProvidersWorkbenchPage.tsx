@@ -15,6 +15,7 @@ import type { OpenAIProviderConfig } from '@/types';
 import { ProviderHeaderCard } from './components/ProviderHeaderCard';
 import { ProviderCategoryList } from './components/ProviderCategoryList';
 import { ProviderResourcePanel } from './components/ProviderResourcePanel';
+import { ProviderSubscriptionSummary } from './components/ProviderSubscriptionSummary';
 import type { ProviderPanelControls } from './components/ProviderResourcePanel';
 import { SponsorCampaignCard } from './components/SponsorCampaignCard';
 import { SponsorQuickStartPanel } from './components/SponsorQuickStartPanel';
@@ -258,19 +259,33 @@ export function ProvidersWorkbenchPage({ fixedBrand }: ProvidersWorkbenchPagePro
   ]);
 
   const totalResources = useMemo(
-    () => groups.reduce((sum, g) => sum + g.resources.length, 0),
+    () => groups.reduce((sum, g) => sum + g.resources.length + (g.subscriptions?.total ?? 0), 0),
     [groups]
   );
 
   const totalActive = useMemo(
-    () => groups.reduce((sum, g) => sum + g.resources.filter((r) => !r.disabled).length, 0),
+    () =>
+      groups.reduce(
+        (sum, g) =>
+          sum + g.resources.filter((r) => !r.disabled).length + (g.subscriptions?.active ?? 0),
+        0
+      ),
     [groups]
   );
 
   const providerFamilies = useMemo(
-    () => groups.filter((g) => g.resources.length > 0).length,
+    () => groups.filter((g) => g.resources.length > 0 || (g.subscriptions?.total ?? 0) > 0).length,
     [groups]
   );
+  const summaryNotice =
+    groups.some((group) => group.id === 'claude' || group.id === 'codex') &&
+    workbench.subscriptionStatus !== 'ready'
+      ? t(
+          workbench.subscriptionStatus === 'error'
+            ? 'providersPage.subscriptions.error'
+            : 'common.loading'
+        )
+      : undefined;
   const quickStartResource = useMemo(
     () => (fixedBrand === 'apikeyFun' && activeGroup ? (activeGroup.resources[0] ?? null) : null),
     [activeGroup, fixedBrand]
@@ -411,6 +426,7 @@ export function ProvidersWorkbenchPage({ fixedBrand }: ProvidersWorkbenchPagePro
       <ProviderHeaderCard
         title={headerTitle}
         totalActive={totalActive}
+        summaryNotice={summaryNotice}
         totalResources={totalResources}
         providerFamilies={providerFamilies}
         updatedAtLabel={updatedAtLabel}
@@ -431,6 +447,7 @@ export function ProvidersWorkbenchPage({ fixedBrand }: ProvidersWorkbenchPagePro
           <ProviderCategoryList
             groups={groups}
             activeBrand={activeGroup.id}
+            subscriptionStatus={workbench.subscriptionStatus}
             onSelect={(brand) => {
               const isSwitching = sheetState.open && sheetState.brand !== brand;
               const proceed =
@@ -457,21 +474,27 @@ export function ProvidersWorkbenchPage({ fixedBrand }: ProvidersWorkbenchPagePro
             />
           </div>
         ) : (
-          <ProviderResourcePanel
-            group={activeGroup}
-            filter={filter}
-            onFilterChange={(value) => updateActiveFilterState({ filter: value })}
-            filteredResources={visibleResources}
-            selectedId={sheetState.open ? (sheetState.resource?.id ?? null) : null}
-            disableMutations={disableMutations}
-            usageByProvider={usageByProvider}
-            toolbarControls={toolbarControls}
-            onView={openView}
-            onEdit={openEdit}
-            onDelete={handleDelete}
-            onToggleDisabled={handleToggleDisabled}
-            onCreate={openCreate}
-          />
+          <div className={styles.quickStartStack}>
+            <ProviderSubscriptionSummary
+              group={activeGroup}
+              status={workbench.subscriptionStatus}
+            />
+            <ProviderResourcePanel
+              group={activeGroup}
+              filter={filter}
+              onFilterChange={(value) => updateActiveFilterState({ filter: value })}
+              filteredResources={visibleResources}
+              selectedId={sheetState.open ? (sheetState.resource?.id ?? null) : null}
+              disableMutations={disableMutations}
+              usageByProvider={usageByProvider}
+              toolbarControls={toolbarControls}
+              onView={openView}
+              onEdit={openEdit}
+              onDelete={handleDelete}
+              onToggleDisabled={handleToggleDisabled}
+              onCreate={openCreate}
+            />
+          </div>
         )}
       </div>
 

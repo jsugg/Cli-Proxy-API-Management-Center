@@ -2020,6 +2020,13 @@
     "version": "Management UI Version"
   },
   "providersPage": {
+    "subscriptions": {
+      "title": "Subscription accounts",
+      "apiKeys": "API-key integrations",
+      "breakdown": "{{subscriptions}} subscriptions · {{keys}} API keys",
+      "manage": "Manage subscription accounts",
+      "error": "Subscription counts unavailable. Refresh to retry."
+    },
     "behavior": {
       "title": "Provider-specific behavior",
       "alphaSearch": "Enable Alpha Search",

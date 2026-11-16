@@ -2020,6 +2020,13 @@
     "version": "Yönetim Arayüzü Sürümü"
   },
   "providersPage": {
+    "subscriptions": {
+      "title": "Abonelik hesapları",
+      "apiKeys": "API anahtarı entegrasyonları",
+      "breakdown": "{{subscriptions}} abonelik · {{keys}} API anahtarı",
+      "manage": "Abonelik hesaplarını yönet",
+      "error": "Abonelik sayıları alınamadı. Yenileyip tekrar deneyin."
+    },
     "behavior": {
       "title": "Sağlayıcıya Özel Davranış",
       "alphaSearch": "Alpha Search Etkinleştir",

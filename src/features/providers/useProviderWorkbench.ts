@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { providersApi } from '@/services/api';
+import { authFilesApi, providersApi } from '@/services/api';
+import type { AuthFileItem } from '@/types/authFile';
 import { getErrorMessage } from '@/utils/helpers';
 import { useAuthStore, useConfigStore } from '@/stores';
 import {
@@ -80,6 +81,7 @@ export interface UseProviderWorkbenchResult {
   isError: boolean;
   errorMessage: string | null;
   snapshot: ProviderSnapshot | null;
+  subscriptionStatus: 'loading' | 'ready' | 'error';
   refetch: () => Promise<void>;
 
   createProvider: (brand: ProviderBrand, input: ProviderEntryFormInput) => Promise<void>;
@@ -370,8 +372,28 @@ const toggleSponsorConfig = async (raw: SponsorProviderRaw, disabled: boolean) =
   }
 };
 
-export const buildProviderGroups = (config: Config): ProviderGroup[] =>
-  PROVIDER_BRAND_ORDER.reduce<ProviderGroup[]>((groups, brand) => {
+export const buildProviderGroups = (
+  config: Config,
+  authFiles?: readonly AuthFileItem[]
+): ProviderGroup[] => {
+  const subscriptions = new Map<string, { total: number; active: number }>();
+  for (const file of authFiles ?? []) {
+    const type = file.type || file.provider;
+    if (
+      (type !== 'claude' && type !== 'codex') ||
+      file.account_type !== 'oauth' ||
+      file.runtimeOnly === true ||
+      file.runtimeOnly === 'true'
+    )
+      continue;
+    const counts = subscriptions.get(type) ?? { total: 0, active: 0 };
+    counts.total += 1;
+    if (!file.disabled && !file.unavailable && (!file.status || file.status === 'active')) {
+      counts.active += 1;
+    }
+    subscriptions.set(type, counts);
+  }
+  return PROVIDER_BRAND_ORDER.reduce<ProviderGroup[]>((groups, brand) => {
     let resources: ProviderResource[];
     switch (brand) {
       case 'gemini':
@@ -473,9 +495,13 @@ export const buildProviderGroups = (config: Config): ProviderGroup[] =>
     groups.push({
       id: brand,
       resources,
+      ...(authFiles && (brand === 'claude' || brand === 'codex')
+        ? { subscriptions: subscriptions.get(brand) ?? { total: 0, active: 0 } }
+        : {}),
     });
     return groups;
   }, []);
+};
 
 /* -------------------------------------------------------------------------- */
 /* hook                                                                       */
@@ -493,20 +519,46 @@ export function useProviderWorkbench(): UseProviderWorkbenchResult {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [mutating, setMutating] = useState<boolean>(false);
   const [fetchedAt, setFetchedAt] = useState<string>(() => new Date().toISOString());
-
-  const hasFetchedRef = useRef(false);
+  const [authFiles, setAuthFiles] = useState<AuthFileItem[] | undefined>();
+  const [subscriptionStatus, setSubscriptionStatus] = useState<'loading' | 'ready' | 'error'>(
+    'loading'
+  );
+  const apiBase = useAuthStore((s) => s.apiBase);
+  const managementKey = useAuthStore((s) => s.managementKey);
+  const latestRequest = useRef(0);
 
   const connected = connectionStatus === 'connected';
 
   const refetch = useCallback(async () => {
+    const request = ++latestRequest.current;
+    const isCurrent = () => {
+      const auth = useAuthStore.getState();
+      return (
+        request === latestRequest.current &&
+        auth.apiBase === apiBase &&
+        auth.managementKey === managementKey &&
+        auth.connectionStatus === 'connected'
+      );
+    };
     setIsFetching(true);
     setErrorMessage(null);
+    setAuthFiles(undefined);
+    setSubscriptionStatus('loading');
     try {
-      const [configResult, vertexResult, openaiResult] = await Promise.allSettled([
-        fetchConfig(true),
-        providersApi.getVertexConfigs(),
-        providersApi.getOpenAIProviders(),
-      ]);
+      const [configResult, vertexResult, openaiResult, credentialsResult] =
+        await Promise.allSettled([
+          fetchConfig(true),
+          providersApi.getVertexConfigs(),
+          providersApi.getOpenAIProviders(),
+          authFilesApi.list(),
+        ]);
+      if (!isCurrent()) return;
+      if (credentialsResult.status === 'fulfilled') {
+        setAuthFiles(credentialsResult.value.files);
+        setSubscriptionStatus('ready');
+      } else {
+        setSubscriptionStatus('error');
+      }
       if (configResult.status !== 'fulfilled') {
         throw configResult.reason;
       }
@@ -518,22 +570,25 @@ export function useProviderWorkbench(): UseProviderWorkbenchResult {
       }
       setFetchedAt(new Date().toISOString());
     } catch (err) {
-      setErrorMessage(getErrorMessage(err) || 'Failed to load providers');
+      if (isCurrent()) setErrorMessage(getErrorMessage(err) || 'Failed to load providers');
     } finally {
-      setIsPending(false);
-      setIsFetching(false);
+      if (isCurrent()) {
+        setIsPending(false);
+        setIsFetching(false);
+      }
     }
-  }, [fetchConfig, updateConfigValue]);
+  }, [fetchConfig, updateConfigValue, apiBase, managementKey]);
 
   const refreshSnapshot = useCallback(() => {
     setFetchedAt(new Date().toISOString());
   }, []);
 
   useEffect(() => {
-    if (hasFetchedRef.current) return;
     if (!connected) return;
-    hasFetchedRef.current = true;
     refetch().catch(() => {});
+    return () => {
+      latestRequest.current += 1;
+    };
   }, [connected, refetch]);
 
   /* ------------------- snapshot 计算 ------------------- */
@@ -542,9 +597,9 @@ export function useProviderWorkbench(): UseProviderWorkbenchResult {
     if (!config) return null;
     return {
       fetchedAt,
-      groups: buildProviderGroups(config),
+      groups: buildProviderGroups(config, authFiles),
     };
-  }, [config, fetchedAt]);
+  }, [config, fetchedAt, authFiles]);
 
   /* ------------------- mutations ------------------- */
 
@@ -1000,6 +1055,7 @@ export function useProviderWorkbench(): UseProviderWorkbenchResult {
     isError: Boolean(errorMessage),
     errorMessage,
     snapshot,
+    subscriptionStatus,
     refetch,
     createProvider,
     updateProvider,

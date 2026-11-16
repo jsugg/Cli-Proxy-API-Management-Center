@@ -1,4 +1,16 @@
 {
+  "quota_pool": {
+    "title": "Sağlayıcıya göre kalan kota",
+    "accounts": "{{count}} etkin kimlik bilgisi",
+    "unknown": "Bilinmiyor",
+    "coverage": "Gözlenen {{known}}/{{total}}",
+    "reset_unknown": "Sonraki sıfırlama bilinmiyor",
+    "next_reset": "Sonraki sıfırlama {{time}}",
+    "period": "{{hours}} saat",
+    "show_emails": "E-postaları göster",
+    "hide_emails": "E-postaları gizle",
+    "explanation": "Tüm etkin kimlik bilgilerinde her sınır ve dönem için kalan hesap yüzdelerinin ağırlıksız ortalamasıdır, token kapasitesi değildir. Planlar ağırlıklandırılmaz. Bilinmeyen, başarısız, sıfırlama zamanı geçmiş veya 15 dakikadan eski gözlemler dışlanır. Güncellemek için hesapları yenileyin. Kota geçmişi veya tüketim hızı tahmini mevcut değildir."
+  },
   "common": {
     "login": "Giriş",
     "logout": "Çıkış",

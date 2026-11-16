@@ -1,4 +1,16 @@
 {
+  "quota_pool": {
+    "title": "各提供商剩余额度",
+    "accounts": "{{count}} 个已启用凭证",
+    "unknown": "未知",
+    "coverage": "已观测 {{known}}/{{total}}",
+    "reset_unknown": "下次重置未知",
+    "next_reset": "下次重置 {{time}}",
+    "period": "{{hours}}小时",
+    "show_emails": "显示邮箱",
+    "hide_emails": "隐藏邮箱",
+    "explanation": "按独立额度窗口计算各账户剩余百分比的非加权平均，涵盖所有已启用凭证，不代表令牌总量，套餐不加权。排除未知、失败、已过重置时间或超过15分钟的观测。刷新账户可更新数据。暂无额度历史或消耗速率预测。"
+  },
   "common": {
     "login": "登录",
     "logout": "登出",

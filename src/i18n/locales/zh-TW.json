@@ -1,4 +1,16 @@
 {
+  "quota_pool": {
+    "title": "各提供商剩餘額度",
+    "accounts": "{{count}} 個已啟用憑證",
+    "unknown": "未知",
+    "coverage": "已觀測 {{known}}/{{total}}",
+    "reset_unknown": "下次重置未知",
+    "next_reset": "下次重置 {{time}}",
+    "period": "{{hours}}小時",
+    "show_emails": "顯示信箱",
+    "hide_emails": "隱藏信箱",
+    "explanation": "按獨立額度視窗計算各帳戶剩餘百分比的非加權平均，涵蓋所有已啟用憑證，不代表權杖總量，方案不加權。排除未知、失敗、已過重置時間或超過15分鐘的觀測。重新整理帳戶可更新資料。暫無額度歷史或消耗速率預測。"
+  },
   "common": {
     "login": "登入",
     "logout": "登出",

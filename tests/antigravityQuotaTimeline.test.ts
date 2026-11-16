@@ -95,6 +95,7 @@ describe('Antigravity grouped timeline', () => {
           entries: [{ type: 'antigravity', file: { name: 'account.json', type: 'antigravity' } }],
           quotaFor: () => quota,
           displayNameFor: () => accountName,
+          showEmails: true,
           resolvedTheme: 'light',
           now,
           initialMode,

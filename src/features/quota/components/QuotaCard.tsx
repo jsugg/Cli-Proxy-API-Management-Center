@@ -18,6 +18,7 @@ import {
 import { bindQuotaClasses } from '../types';
 import { QUOTA_ADAPTERS, type QuotaCardState } from '../providers';
 import { isQuotaRefreshDisabled, type QuotaFileEntry } from '../logic';
+import { maskQuotaIdentity } from '../pool';
 import { useClaudeResetGrants } from '../providers/claude/ClaudeResetGrants';
 import { ClaudeResetGrantDialog } from '../providers/claude/ClaudeResetGrantDialog';
 import { ClaudeResetGrantDetails } from '../providers/claude/ClaudeResetGrantDetails';
@@ -32,6 +33,7 @@ import styles from './QuotaCard.module.scss';
 const quotaClasses = bindQuotaClasses(bodyStyles, 'QuotaBody.module.scss');
 
 export type QuotaCardProps = {
+  showEmails?: boolean;
   entry: QuotaFileEntry;
   quota?: QuotaCardState;
   resolvedTheme: ResolvedTheme;
@@ -62,6 +64,7 @@ export function QuotaCard(props: QuotaCardProps) {
     glance,
     onToggleGlance,
     creditOverageSharedCount = 1,
+    showEmails = false,
     onRefresh,
     onReset,
   } = props;
@@ -70,7 +73,8 @@ export function QuotaCard(props: QuotaCardProps) {
   const file = entry.file;
   const retainedClaudeUsage =
     entry.type === 'claude' && hasClaudeUsageData(quota as ClaudeQuotaState | undefined);
-  const displayName = getQuotaDisplayName(file);
+  const identity = getQuotaDisplayName(file);
+  const displayName = showEmails ? identity : maskQuotaIdentity(identity);
 
   // Capture the entrance delay only at mount, without a render-time ref read.
   const [mountEntranceDelayMs] = useState<number | null>(entranceDelayMs ?? null);
@@ -124,6 +128,14 @@ export function QuotaCard(props: QuotaCardProps) {
     entry.type === 'codex' ? (quota as CodexQuotaState | undefined) : undefined,
     !canRefresh || loading || resetting
   );
+  const creditOverageDialogContext = creditOverage.context
+    ? {
+        ...creditOverage.context,
+        accountLabel: showEmails
+          ? creditOverage.context.accountLabel
+          : maskQuotaIdentity(creditOverage.context.accountLabel),
+      }
+    : null;
   const codexAfterPlan = creditOverage.visible ? (
     <CodexCreditOverageRow
       entry={creditOverage.entry}
@@ -285,10 +297,10 @@ export function QuotaCard(props: QuotaCardProps) {
           onClose={claudeReset.closeDialog}
         />
       )}
-      {creditOverage.context && (
+      {creditOverageDialogContext && (
         <CodexCreditOverageDialog
           open={creditOverage.open}
-          context={creditOverage.context}
+          context={creditOverageDialogContext}
           entry={creditOverage.entry}
           operation={creditOverage.operation}
           writeDisabled={creditOverage.writeDisabled}

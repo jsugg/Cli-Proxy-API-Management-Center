@@ -1,4 +1,16 @@
 {
+  "quota_pool": {
+    "title": "Hạn mức còn lại theo nhà cung cấp",
+    "accounts": "{{count}} thông tin xác thực đang bật",
+    "unknown": "Không rõ",
+    "coverage": "Đã đo {{known}}/{{total}}",
+    "reset_unknown": "Chưa rõ lần đặt lại tiếp theo",
+    "next_reset": "Đặt lại tiếp theo {{time}}",
+    "period": "{{hours}} giờ",
+    "show_emails": "Hiện email",
+    "hide_emails": "Ẩn email",
+    "explanation": "Trung bình không trọng số của phần trăm còn lại theo từng giới hạn và cửa sổ, trên mọi thông tin xác thực đang bật, không phải tổng token. Không gán trọng số theo gói. Loại dữ liệu thiếu, lỗi, đã qua lần đặt lại hoặc cũ hơn 15 phút. Làm mới tài khoản để cập nhật. Chưa có lịch sử hạn mức hoặc dự báo tốc độ tiêu thụ."
+  },
   "common": {
     "login": "Đăng nhập",
     "logout": "Đăng xuất",

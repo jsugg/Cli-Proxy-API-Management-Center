@@ -23,6 +23,7 @@ import type {
 } from '@/types';
 import { HOUR_MS, DAY_MS } from '@/utils/time/durations';
 import { QuotaCard } from '../components/QuotaCard';
+import { QuotaPoolSummary } from '../components/QuotaPoolSummary';
 import type { QuotaFileEntry } from '../logic';
 import type { QuotaCardState } from '../providers';
 import pageStyles from '../QuotaPage.module.scss';
@@ -66,11 +67,12 @@ const codexWindow = (
 
 const codexQuota = (planType: string, used: [number, number], soon = false): CodexQuotaState => ({
   status: 'success',
+  observedAt: new Date().toISOString(),
   planType,
   subscriptionActiveUntil: new Date(Date.now() + 26 * DAY_MS).toISOString(),
   windows: [
-    codexWindow('primary', '5 小时', used[0], soon ? 0.4 * HOUR_MS : 3 * HOUR_MS, 5),
-    codexWindow('secondary', '每周', used[1], 4 * DAY_MS, 168),
+    codexWindow('five-hour', '5 小时', used[0], soon ? 0.4 * HOUR_MS : 3 * HOUR_MS, 5),
+    codexWindow('weekly', '每周', used[1], 4 * DAY_MS, 168),
   ],
 });
 
@@ -175,7 +177,7 @@ const buildAccounts = (): MockAccount[] => [
     quota: codexQuota('promax', [6, 21]),
   },
   {
-    entry: { type: 'claude', file: file('claude-max20.json', 'claude') },
+    entry: { type: 'claude', file: file('claude-alice@example.test.json', 'claude') },
     quota: claudeQuota('plan_max20', [36, 72]),
   },
   {
@@ -240,6 +242,7 @@ export function QuotaTierPreview() {
   const setTheme = useThemeStore((state) => state.setTheme);
   const [accounts] = useState(buildAccounts);
   const [refreshing, setRefreshing] = useState(false);
+  const [showEmails, setShowEmails] = useState(false);
   const [replayKey, setReplayKey] = useState(0);
 
   const simulateRefresh = () => {
@@ -257,6 +260,14 @@ export function QuotaTierPreview() {
           </p>
         </div>
         <div className={styles.controls}>
+          <button
+            className={styles.replay}
+            type="button"
+            aria-pressed={showEmails}
+            onClick={() => setShowEmails((value) => !value)}
+          >
+            {showEmails ? 'Hide emails' : 'Show emails'}
+          </button>
           <div className={styles.segmented} role="group" aria-label="主题">
             {THEMES.map((option) => (
               <button
@@ -288,12 +299,18 @@ export function QuotaTierPreview() {
         </div>
       </header>
 
+      <QuotaPoolSummary
+        entries={accounts.map((account) => account.entry)}
+        quotaFor={(entry) => accounts.find((account) => account.entry === entry)?.quota}
+      />
+
       <section className={styles.section}>
         <div key={replayKey} className={pageStyles.grid}>
           {accounts.map((account, index) => (
             <QuotaCard
               key={account.entry.file.name}
               entry={account.entry}
+              showEmails={showEmails}
               quota={
                 refreshing && account.quota.status === 'success'
                   ? { status: 'loading' }

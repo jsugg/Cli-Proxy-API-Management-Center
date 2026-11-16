@@ -1,6 +1,6 @@
 # Quota summaries
 
-The quota page summarizes Claude and Codex observations already fetched by the existing adapters. No new endpoint, polling, account, routing rule or dependency is introduced. Provider subscription counts are unchanged.
+The quota page has two separate data sources: manually fetched current snapshots and optional server-recorded history. No new dependency, account or inference routing rule is introduced. Provider subscription counts are unchanged.
 
 Each row is an **unweighted mean of remaining percentages**, grouped by provider, limit ID and actual window duration. It is not pooled tokens or spendable capacity. Short, weekly, monthly and model-specific limits remain independent. Plans have no invented multipliers. Different accounts can have different reset times; the next reset is the earliest future reset among contributing observations, not the entire pool's reset.
 
@@ -10,18 +10,28 @@ Codex now carries a browser receipt timestamp, like Claude. Neither is provider-
 
 Emails embedded in quota card and timeline identities, tooltips, accessible labels and confirmation labels are masked by default. Show emails is explicit and stays in page memory only. It does not redact network payloads or secure browser storage, nor does it change credential names or mutation targets. Arbitrary filenames that contain personal information other than an email address are not anonymized.
 
-## History and forecasts need backend work
+## Server-recorded history
 
-The inspected v8 Management API provides credential listing and `/requests/api-call` for the existing provider probes, plus usage queues and logs. Its route contract does not provide durable quota observations. The existing timeline projects reset **schedules**, not recorded quota history or consumption forecasts. Token usage logs alone cannot reconstruct subscription utilization percentages.
+The optional quota-history companion adds schema v1 under the existing authenticated `/v8/management/quota-history` prefix. Its canonical contract is `CLIProxyAPI/docs/jnet-quota-history.md` in the companion repository. The native inference server is unchanged. The frontend first checks `/quota-history/capabilities`, then reads `/quota-history` through the existing management API client and the same admin key. Missing capabilities or unsupported schemas show an unavailable state. Other failures show an explicit retryable error, never an empty/full quota claim.
 
-Before adding recorded quota charts or a burn-rate forecast:
+History reads refresh every 60 seconds, without browser provider probes. The companion samples centrally every 300 seconds and persists observations for up to 30 days. No history exists before collection starts. New installations show the actual first samples immediately; rates unlock only after sufficient observations accumulate. The older timeline still projects reset **schedules**, not recorded utilization. Token logs are never converted into subscription history.
 
-- Sample provider quota centrally with bounded concurrency, deadlines and backoff. Record server observation time, provider, stable account ID, limit/model ID, actual duration, reset instant, used percentage, plan metadata, source, stale/error state and schema version. Do not store credentials or email addresses as metric labels.
-- Persist samples with explicit retention and bounded storage, isolate connections/accounts and deduplicate aliases. Serve a capability-gated, authenticated, time-range/pagination-bounded history API. Define this contract before frontend implementation; no speculative endpoint is called here.
-- Split series at resets, plan/limit/duration changes, manual resets and missing-data gaps. A percentage decrease is not negative consumption. Unknown data is not interpolation or zero.
-- Require at least three distinct successful samples over a meaningful declared lookback and minimum coverage before estimating slope. Report sample range, age, coverage and confidence. A constant-rate forecast must state that assumption, stay within a bounded horizon and incorporate independently scheduled resets without treating different plan quotas as fungible tokens.
-- Keep recorded observations visually separate from projected values. Report exhaustion as unknown when samples, capacity calibration or stable window identity are insufficient. Browser-local samples must be labelled session-local, never hub-wide history.
+Provider tabs scope history requests to Claude, Codex or both; unrelated providers do not query history. Time ranges are one hour by default, or six/24 hours. Pages share an immutable range/filter/limit and follow the exact `cursor` returned by the service. Each page is bounded by the server capability and 2,000 observations; a view loads at most five pages, or 10,000 observations. Partial results are labelled and cannot produce forecasts. Load more retrieves another bounded page; automatic refresh preserves the number of pages already requested. Narrow the range when the page ceiling is reached. Repeated cursors, malformed/oversized responses and out-of-range samples fail closed.
+
+Tracks are independent provider/opaque-account/limit/actual-period identities. The server's `series_id` includes plan, period and reset boundaries. Provider-quality IDs can deduplicate credential aliases. Credential-quality IDs cannot identify unique people; Codex currently uses this conservative identity and displays the caveat. Nothing sums subscriptions into token capacity. Existing credential filenames can label a matching native auth index, with emails masked by default; unmatched accounts use shortened opaque IDs. Native auth indexes are never displayed.
+
+Solid segments and dots are real recorded observations. Unknown rows, missing observations, usage decreases and series/reset changes break recorded lines. Unknown data is not zero. Account-wide `limit_id=unknown` observations invalidate every limit for that account. A limit-scoped unknown observation with no period invalidates every duration track for that same account/limit. Duration tracks keep separate measurements but share observed period-change boundaries, so an obsolete duration cannot forecast and returning to a prior duration cannot bridge the intervening change. The companion records failed probes, backoff, disappearing windows and enumeration failures as unknown observations so later successful polls cannot erase those gaps. Collection failure status also disables forecasts, even before the collector becomes stale.
+
+### Conservative estimates
+
+- Use only the most recent contiguous suffix within 60 minutes. Require at least three distinct successful timestamps spanning at least 15 minutes, a latest sample no older than 10 minutes, and no adjacent gap longer than 15 minutes.
+- Never cross account, provider, limit, series, period, reset or decreasing-utilization boundaries. Identical timestamp duplicates collapse; conflicting duplicate readings become an unknown gap.
+- Observed burn is the first-to-last utilization change divided by elapsed hours, in **percentage points per hour**, not tokens, money or a provider-wide pool rate. Show contiguous sample count/span, latest age and usable/total observation coverage. Flat observations show no measurable rate and unknown exhaustion.
+- Dashed forecasts explicitly assume the recent rate stays constant. Start at the latest actual observation and stop at exhaustion, the next reported reset, or a horizon no more than one hour ahead. Never invent repeated resets, refills or sawtooths. Exhaustion remains unknown when it falls outside that bounded current-window projection.
+- Stale/failed collectors, unknown windows, insufficient samples and incomplete pagination disable projections. These rules are eligibility checks, not statistical confidence guarantees.
+
+The browser neither persists nor reconstructs history. It holds a bounded server snapshot in memory. Connection-pinned authentication, abort controllers, request ownership and quota-cache generations suppress late responses and clear displayed history across logout, connection changes and provider/range switches. Read-only requests have 15-second deadlines, no retry storm and no additional key entry.
 
 ## Verification fixture
 
-The existing development-only `/#/__preview/quota-tiers` route renders real summary and quota-card components with synthetic data, including an email masking toggle. It requires no management key or backend. Production builds remove that route. Browser checks against this fixture do not validate live provider responses.
+The development-only `/#/__preview/quota-tiers` route renders real summaries, history charts and quota cards with synthetic data. History fixtures cover ready, first-sample, collecting, unsupported, partial, stale, gaps, flat and collection-failure states. They include account selection, time-range controls, load more and email masking. They require no management key or backend and never mount the network history loader. Production builds remove this route. Browser checks against these fixtures do not validate live provider responses.

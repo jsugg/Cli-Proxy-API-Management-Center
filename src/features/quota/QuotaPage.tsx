@@ -29,6 +29,7 @@ import { ProviderTabs } from '@/features/authFiles/components/ProviderTabs';
 import { QuotaHeader } from './components/QuotaHeader';
 import { QuotaCard } from './components/QuotaCard';
 import { QuotaTimeline } from './components/QuotaTimeline';
+import { QuotaPoolSummary } from './components/QuotaPoolSummary';
 import {
   CARD_ENTRANCE_BUDGET_MS,
   QUOTA_CARD_LAYOUT_KEY,
@@ -86,6 +87,7 @@ export function QuotaPage() {
   );
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [showEmails, setShowEmails] = useState(false);
   const [layout, setLayout] = useState<CardLayout>(() => readCardLayout(QUOTA_CARD_LAYOUT_KEY));
   // Compact cards the user opened to full size; not persisted.
   const [expandedCards, setExpandedCards] = useState<ReadonlySet<string>>(() => new Set());
@@ -362,6 +364,7 @@ export function QuotaPage() {
       <QuotaCard
         key={key}
         entry={entry}
+        showEmails={showEmails}
         quota={getQuota(entry)}
         resolvedTheme={resolvedTheme}
         canRefresh={canUseActions && !entry.file.disabled}
@@ -392,6 +395,10 @@ export function QuotaPage() {
         disableControls={disableControls}
         onRefreshAll={handleRefreshAll}
       />
+
+      {!loading && !error && filesGeneration === sessionGeneration && (
+        <QuotaPoolSummary entries={entries} quotaFor={getQuota} />
+      )}
 
       <section className={styles.workbench}>
         {/* 提供商导航与搜索工具栏分层，避免不同控件争夺视觉焦点。 */}
@@ -433,6 +440,14 @@ export function QuotaPage() {
             )}
           </div>
           <div className={styles.viewControls}>
+            <Button
+              variant="secondary"
+              size="sm"
+              aria-pressed={showEmails}
+              onClick={() => setShowEmails((value) => !value)}
+            >
+              {t(showEmails ? 'quota_pool.hide_emails' : 'quota_pool.show_emails')}
+            </Button>
             <div className={styles.sort}>
               <Select
                 value={sortMode}
@@ -530,6 +545,7 @@ export function QuotaPage() {
 
         {/* 时间线只比较当前页凭证，避免大量凭证一次性生成无界泳道。 */}
         <QuotaTimeline
+          showEmails={showEmails}
           entries={pageItems}
           quotaFor={getQuota}
           displayNameFor={displayNameFor}

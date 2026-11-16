@@ -155,6 +155,8 @@ describe('Codex account credits', () => {
       t
     );
     const state = CODEX_CONFIG.buildSuccessState(data);
+    expect(Number.isFinite(Date.parse(state.observedAt ?? ''))).toBeTrue();
+    expect(state.observedAt).toBe(data.observedAt);
     expect(state.creditBalance).toBe('8.75');
     expect(state.creditsUnlimited).toBeFalse();
     expect(state.rateLimitResetCreditsAvailableCount).toBe(1);

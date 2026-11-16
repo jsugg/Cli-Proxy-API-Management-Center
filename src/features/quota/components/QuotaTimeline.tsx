@@ -32,6 +32,7 @@ import type { TimelineLane, TimelineMode } from '../quotaTimelineModel';
 import type { QuotaFileEntry } from '../logic';
 import type { QuotaCardState } from '../providers';
 import { resolveAntigravityGroupLabelKey } from '../providers/antigravity/labels';
+import { maskQuotaIdentity } from '../pool';
 import styles from './QuotaTimeline.module.scss';
 
 const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
@@ -47,6 +48,7 @@ const formatTime = (ms: number) => {
 };
 
 export interface QuotaTimelineProps {
+  showEmails?: boolean;
   entries: QuotaFileEntry[];
   /**
    * Quota state for an entry. An entry carries only the file and its provider —
@@ -72,6 +74,7 @@ export function QuotaTimeline({
   now: nowProp,
   initialMode = 'weekly',
   initialOffset = 0,
+  showEmails = false,
 }: QuotaTimelineProps) {
   const { t } = useTranslation();
   const [mode, setMode] = useState<TimelineMode>(initialMode);
@@ -95,14 +98,13 @@ export function QuotaTimeline({
     () =>
       entries.map((entry) => ({
         name: getQuotaCacheKey(entry.file),
-        displayName:
-          entry.type === 'devin'
-            ? getQuotaDisplayName(entry.file)
-            : displayNameFor(entry.file.name),
+        displayName: (showEmails ? (value: string) => value : maskQuotaIdentity)(
+          entry.type === 'devin' ? getQuotaDisplayName(entry.file) : displayNameFor(entry.file.name)
+        ),
         provider: entry.type,
         quota: quotaFor(entry),
       })),
-    [entries, quotaFor, displayNameFor]
+    [entries, quotaFor, displayNameFor, showEmails]
   );
 
   // Keep the timeline hidden until at least one loaded credential exposes a

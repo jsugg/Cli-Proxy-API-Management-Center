@@ -1,4 +1,16 @@
 {
+  "quota_pool": {
+    "title": "Remaining quota by provider",
+    "accounts": "{{count}} enabled credentials",
+    "unknown": "Unknown",
+    "coverage": "{{known}}/{{total}} observed",
+    "reset_unknown": "Next reset unknown",
+    "next_reset": "Next reset {{time}}",
+    "period": "{{hours}}h",
+    "show_emails": "Show emails",
+    "hide_emails": "Hide emails",
+    "explanation": "Unweighted mean of remaining account percentages per limit and window, across all enabled credentials, not token capacity. Plans are not weighted. Coverage excludes unknown, failed, reset-past and older-than-15-minute observations. Refresh accounts to update. No quota history or burn-rate forecast is available."
+  },
   "common": {
     "login": "Login",
     "logout": "Logout",

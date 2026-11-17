@@ -91,6 +91,8 @@ export class QuotaHistorySession {
     this.abort = new AbortController();
     const targetPages = Math.max(1, this.state.pages);
     const previous = this.state.status === 'ready' ? this.state : null;
+    const previousQuery = this.query;
+    const previousCursors = new Set(this.cursors);
     // Keep the last chart on screen while revalidating instead of flashing a loading state.
     this.publish(previous ? { ...previous, busy: true } : { ...initialHistoryState(), busy: true });
     try {
@@ -121,6 +123,8 @@ export class QuotaHistorySession {
       this.publish({ ...state, status: 'ready', busy: false });
     } catch (error) {
       if (previous && !(error instanceof UnsupportedQuotaHistory)) {
+        this.query = previousQuery;
+        this.cursors = previousCursors;
         this.publish({ ...previous, busy: false, refreshFailed: true });
       } else {
         this.fail(error);

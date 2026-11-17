@@ -91,6 +91,37 @@ describe('history collection session', () => {
     expect(session.getSnapshot().status).toBe('error');
   });
 
+  test('failed background refresh preserves the query and cursor history for retained pages', async () => {
+    let clock = now;
+    let fail = false;
+    const queries: QuotaHistoryQuery[] = [];
+    const session = new QuotaHistorySession({
+      client: {
+        capabilities: async () => caps,
+        page: async (query) => {
+          queries.push(query);
+          if (fail) throw new Error('offline');
+          return { samples: [], nextCursor: 'original-cursor' };
+        },
+      },
+      provider: 'claude',
+      rangeMs: 3600000,
+      isCurrent: () => true,
+      now: () => clock,
+    });
+    await session.refresh();
+    clock += 60_000;
+    fail = true;
+    await session.refresh();
+    expect(session.getSnapshot()).toMatchObject({ status: 'ready', refreshFailed: true });
+    fail = false;
+    await session.loadMore();
+    expect(queries[2]).toEqual({ ...queries[0], cursor: 'original-cursor' });
+    // Retaining a page also retains its cursor-loop protection.
+    expect(session.getSnapshot().status).toBe('error');
+    session.dispose();
+  });
+
   test.each(['logout', 'switch', 'unmount'] as const)(
     'ignores late success and failure after %s',
     async (change) => {

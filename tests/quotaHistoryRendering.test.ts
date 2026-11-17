@@ -50,7 +50,12 @@ const render = (state = ready) =>
       entries: [
         {
           type: 'claude',
-          file: { name: 'claude-alice@example.test.json', type: 'claude', authIndex: 'fixture' },
+          file: {
+            name: 'claude-1-alice@example.test.json',
+            type: 'claude',
+            email: 'alice@example.test',
+            authIndex: 'fixture',
+          },
         },
       ],
       rangeHours: 1,
@@ -181,7 +186,7 @@ describe('recorded history chart', () => {
     expect(markup).toContain('pp/h');
     expect(markup).toContain('constant');
     expect(markup).not.toContain('alice@example.test');
-    expect(markup).toContain('claude-a•••@e•••.json');
+    expect(markup).toContain('al…e@example.test');
     expect(render({ ...ready, samples: [samples[0]] })).toContain('<circle');
     expect(render({ ...ready, samples: [samples[0]] })).not.toContain('data-history-projected');
   });

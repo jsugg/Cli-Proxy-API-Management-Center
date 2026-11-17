@@ -22,6 +22,7 @@ import type {
   CodexQuotaState,
 } from '@/types';
 import { normalizeAuthIndex } from '@/utils/authIndex';
+import { getQuotaDisplayName } from '@/utils/quota/identity';
 import { isRecord } from '@/utils/helpers';
 import {
   CODEX_ACCOUNT_USER_SETTING_URL,
@@ -344,7 +345,7 @@ export function buildCodexCreditOverageContext(
     accountId,
     connectionRevision: apiClient.getConnectionRevision(),
     cacheGeneration: useQuotaStore.getState().cacheGeneration,
-    accountLabel: file.email?.trim() || file.name,
+    accountLabel: getQuotaDisplayName(file),
     creditBalance: quota?.creditBalance ?? null,
     creditsUnlimited: quota?.creditsUnlimited === true,
   };

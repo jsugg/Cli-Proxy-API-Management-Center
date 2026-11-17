@@ -104,10 +104,12 @@ describe('quota pool summaries', () => {
 });
 
 describe('quota identity masking', () => {
-  test('masks emails embedded in filenames and display labels without changing ordinary names', () => {
-    expect(maskQuotaIdentity('claude-alice@example.com.json')).toBe('claude-a•••@e•••.json');
-    expect(maskQuotaIdentity('account.json · Alice@Example.com')).toBe('account.json · A•••@E•••');
+  test('masks local email text in generic labels without changing ordinary names', () => {
+    expect(maskQuotaIdentity('alice@example.com')).toBe('al…e@example.com');
+    expect(maskQuotaIdentity('account.json · Alice@Example.com')).toBe(
+      'account.json · Al…e@Example.com'
+    );
     expect(maskQuotaIdentity('personal-account.json')).toBe('personal-account.json');
-    expect(maskQuotaIdentity('josé@exämple.com.json')).toBe('j•••@e•••.json');
+    expect(maskQuotaIdentity('josé@exämple.com')).toBe('j…é@exämple.com');
   });
 });

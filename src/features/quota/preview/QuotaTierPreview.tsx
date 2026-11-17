@@ -8,7 +8,7 @@
  * not localized — this page never ships.
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useThemeStore } from '@/stores';
 import type {
   AntigravityQuotaState,
@@ -24,6 +24,9 @@ import type {
 import { HOUR_MS, DAY_MS } from '@/utils/time/durations';
 import { QuotaCard } from '../components/QuotaCard';
 import { QuotaPoolSummary } from '../components/QuotaPoolSummary';
+import { QuotaTimeline } from '../components/QuotaTimeline';
+import { createQuotaLabelResolver } from '@/utils/quota/identity';
+import { identityPreviewFile } from './identityFixtures';
 import { QuotaHistoryPreview } from './QuotaHistoryPreview';
 import type { QuotaFileEntry } from '../logic';
 import type { QuotaCardState } from '../providers';
@@ -174,11 +177,11 @@ const buildAccounts = (): MockAccount[] => [
     } as KimiQuotaState,
   })),
   {
-    entry: { type: 'codex', file: file('codex-pro500.json', 'codex') },
+    entry: { type: 'codex', file: identityPreviewFile('codex', 0) },
     quota: codexQuota('promax', [6, 21]),
   },
   {
-    entry: { type: 'claude', file: file('claude-alice@example.test.json', 'claude') },
+    entry: { type: 'claude', file: identityPreviewFile('claude', 0) },
     quota: claudeQuota('plan_max20', [36, 72]),
   },
   {
@@ -193,7 +196,7 @@ const buildAccounts = (): MockAccount[] => [
     quota: antigravityQuota('ultra', [0.91, 0.27]),
   },
   {
-    entry: { type: 'codex', file: file('codex-pro200.json', 'codex') },
+    entry: { type: 'codex', file: identityPreviewFile('codex', 1) },
     quota: codexQuota('pro', [18, 54]),
   },
   {
@@ -204,12 +207,16 @@ const buildAccounts = (): MockAccount[] => [
     } as XaiQuotaState,
   },
   {
-    entry: { type: 'codex', file: file('codex-pro100.json', 'codex') },
+    entry: { type: 'codex', file: identityPreviewFile('codex', 2) },
     quota: codexQuota('prolite', [82, 48], true),
   },
   {
-    entry: { type: 'claude', file: file('claude-max5.json', 'claude') },
+    entry: { type: 'claude', file: identityPreviewFile('claude', 1) },
     quota: claudeQuota('plan_max5', [12, 40]),
+  },
+  {
+    entry: { type: 'claude', file: identityPreviewFile('claude', 2) },
+    quota: claudeQuota('plan_pro', [24, 55]),
   },
   {
     entry: { type: 'antigravity', file: file('antigravity-ultra-lite.json', 'antigravity') },
@@ -244,6 +251,14 @@ export function QuotaTierPreview() {
   const [accounts] = useState(buildAccounts);
   const [refreshing, setRefreshing] = useState(false);
   const [showEmails, setShowEmails] = useState(false);
+  const labelForFile = useMemo(
+    () =>
+      createQuotaLabelResolver(
+        accounts.map((account) => account.entry.file),
+        showEmails
+      ),
+    [accounts, showEmails]
+  );
   const [replayKey, setReplayKey] = useState(0);
 
   const simulateRefresh = () => {
@@ -307,12 +322,24 @@ export function QuotaTierPreview() {
 
       <QuotaHistoryPreview showEmails={showEmails} />
 
+      <QuotaTimeline
+        entries={accounts
+          .filter((account) => account.entry.file.email)
+          .map((account) => account.entry)}
+        quotaFor={(entry) => accounts.find((account) => account.entry === entry)?.quota}
+        displayNameFor={(name) => name}
+        labelForFile={labelForFile}
+        showEmails={showEmails}
+        resolvedTheme={resolvedTheme}
+      />
+
       <section className={styles.section}>
         <div key={replayKey} className={pageStyles.grid}>
           {accounts.map((account, index) => (
             <QuotaCard
               key={account.entry.file.name}
               entry={account.entry}
+              labelForFile={labelForFile}
               showEmails={showEmails}
               quota={
                 refreshing && account.quota.status === 'success'

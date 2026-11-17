@@ -4,6 +4,7 @@ import type { QuotaFileEntry } from '../logic';
 import { QuotaHistoryView } from '../history/QuotaHistoryView';
 import { initialHistoryState, type QuotaHistoryState } from '../history/session';
 import type { QuotaHistorySample } from '../history/types';
+import { identityPreviewFile } from './identityFixtures';
 
 const MODES = [
   'ready',
@@ -17,27 +18,31 @@ const MODES = [
   'failure',
 ] as const;
 type PreviewMode = (typeof MODES)[number];
-const entries: QuotaFileEntry[] = [
-  {
-    type: 'claude',
-    file: { name: 'claude-alice@example.test.json', type: 'claude', authIndex: 'preview-claude' },
-  },
-  {
-    type: 'codex',
-    file: { name: 'codex-bob@example.test.json', type: 'codex', authIndex: 'preview-codex' },
-  },
-];
+const entries: QuotaFileEntry[] = (['claude', 'codex'] as const).flatMap((provider) =>
+  [0, 1, 2].map((index) => ({
+    type: provider,
+    file: {
+      ...identityPreviewFile(provider, index),
+      authIndex: `preview-${provider}-${index + 1}`,
+    },
+  }))
+);
 
 function fixture(mode: PreviewMode, rangeHours: number): QuotaHistoryState {
   const to = Date.now();
-  const sample = (ago: number, used: number, provider: 'claude' | 'codex'): QuotaHistorySample => ({
+  const sample = (
+    ago: number,
+    used: number,
+    provider: 'claude' | 'codex',
+    account = 0
+  ): QuotaHistorySample => ({
     observedAt: to - ago * 60000,
     provider,
-    accountId: `${provider}-opaque-example`,
-    authIndex: `preview-${provider}`,
+    accountId: `${provider}-opaque-example-${account + 1}`,
+    authIndex: `preview-${provider}-${account + 1}`,
     identityQuality: provider === 'claude' ? 'provider' : 'credential',
     limitId: provider === 'claude' ? 'seven-day' : 'weekly',
-    seriesId: `${provider}-window-example`,
+    seriesId: `${provider}-window-example-${account + 1}`,
     periodSeconds: 604800,
     resetAt: to + 45 * 60000,
     usedPercent: used,
@@ -45,8 +50,10 @@ function fixture(mode: PreviewMode, rangeHours: number): QuotaHistoryState {
     reason: null,
   });
   let samples = (['claude', 'codex'] as const).flatMap((provider) =>
-    Array.from({ length: 10 }, (_, i) =>
-      sample(45 - i * 5, mode === 'flat' ? 50 : 20 + i * 4, provider)
+    [0, 1, 2].flatMap((account) =>
+      Array.from({ length: 10 }, (_, i) =>
+        sample(45 - i * 5, mode === 'flat' ? 50 : 20 + i * 4 + account * 5, provider, account)
+      )
     )
   );
   if (mode === 'first') samples = [sample(0, 20, 'claude')];

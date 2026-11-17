@@ -24,7 +24,7 @@ import { useNow } from '@/hooks/useNow';
 import { useRevealGroup } from '@/hooks/motion';
 import { useAuthStore, useQuotaStore, useThemeStore } from '@/stores';
 import type { AuthFileItem, ResolvedTheme } from '@/types';
-import { getQuotaCacheKey } from '@/utils/quota/identity';
+import { createQuotaLabelResolver, getQuotaCacheKey } from '@/utils/quota/identity';
 import { ProviderTabs } from '@/features/authFiles/components/ProviderTabs';
 import { QuotaHeader } from './components/QuotaHeader';
 import { QuotaCard } from './components/QuotaCard';
@@ -189,6 +189,14 @@ export function QuotaPage() {
   const sortNow = sortMode === 'default' ? 0 : tick;
 
   const entries = useMemo(() => classifyQuotaFiles(files), [files]);
+  const labelForFile = useMemo(
+    () =>
+      createQuotaLabelResolver(
+        entries.map((entry) => entry.file),
+        showEmails
+      ),
+    [entries, showEmails]
+  );
   const tabCounts = useMemo(() => buildTabCounts(entries), [entries]);
   // Account-level settings span every page and tab, so count over all entries.
   const codexCreditOverageCounts = useMemo(
@@ -288,7 +296,10 @@ export function QuotaPage() {
   /* ---------- 加载与操作 ---------- */
 
   const { batchLoading, loadQuota } = useQuotaBatchLoader();
-  const { resettingQuotaName, refreshQuota, resetQuota } = useQuotaActions(disableControls);
+  const { resettingQuotaName, refreshQuota, resetQuota } = useQuotaActions(
+    disableControls,
+    labelForFile
+  );
 
   const pendingRefreshRef = useRef<number | null>(null);
   const prevLoadingRef = useRef(loading);
@@ -365,6 +376,7 @@ export function QuotaPage() {
       <QuotaCard
         key={key}
         entry={entry}
+        labelForFile={labelForFile}
         showEmails={showEmails}
         quota={getQuota(entry)}
         resolvedTheme={resolvedTheme}
@@ -553,6 +565,7 @@ export function QuotaPage() {
 
         {/* 时间线只比较当前页凭证，避免大量凭证一次性生成无界泳道。 */}
         <QuotaTimeline
+          labelForFile={labelForFile}
           showEmails={showEmails}
           entries={pageItems}
           quotaFor={getQuota}

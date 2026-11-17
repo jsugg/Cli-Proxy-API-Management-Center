@@ -16,7 +16,11 @@ import { useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatRelativeInstant, TYPE_COLORS } from '@/utils/quota';
-import { getQuotaCacheKey, getQuotaDisplayName } from '@/utils/quota/identity';
+import {
+  createQuotaLabelResolver,
+  getQuotaCacheKey,
+  type QuotaLabelResolver,
+} from '@/utils/quota/identity';
 import { useNow } from '@/hooks/useNow';
 import type { ResolvedTheme, ThemeColors } from '@/types';
 import {
@@ -48,6 +52,7 @@ const formatTime = (ms: number) => {
 };
 
 export interface QuotaTimelineProps {
+  labelForFile?: QuotaLabelResolver;
   showEmails?: boolean;
   entries: QuotaFileEntry[];
   /**
@@ -75,6 +80,7 @@ export function QuotaTimeline({
   initialMode = 'weekly',
   initialOffset = 0,
   showEmails = false,
+  labelForFile: providedLabelForFile,
 }: QuotaTimelineProps) {
   const { t } = useTranslation();
   const [mode, setMode] = useState<TimelineMode>(initialMode);
@@ -94,17 +100,32 @@ export function QuotaTimeline({
   // successful previous/next navigation look as though the date never changed.
   const navigationLabel = offset === 0 ? todayLabel : formatDay(span.startMs);
 
+  const labelForFile = useMemo(
+    () =>
+      providedLabelForFile ??
+      createQuotaLabelResolver(
+        entries.map((entry) => entry.file),
+        showEmails
+      ),
+    [entries, providedLabelForFile, showEmails]
+  );
   const laneInputs = useMemo(
     () =>
-      entries.map((entry) => ({
-        name: getQuotaCacheKey(entry.file),
-        displayName: (showEmails ? (value: string) => value : maskQuotaIdentity)(
-          entry.type === 'devin' ? getQuotaDisplayName(entry.file) : displayNameFor(entry.file.name)
-        ),
-        provider: entry.type,
-        quota: quotaFor(entry),
-      })),
-    [entries, quotaFor, displayNameFor, showEmails]
+      entries.map((entry) => {
+        const customName = displayNameFor(entry.file.name);
+        return {
+          name: getQuotaCacheKey(entry.file),
+          displayName:
+            customName === entry.file.name
+              ? labelForFile(entry.file)
+              : showEmails
+                ? customName
+                : maskQuotaIdentity(customName),
+          provider: entry.type,
+          quota: quotaFor(entry),
+        };
+      }),
+    [entries, quotaFor, displayNameFor, showEmails, labelForFile]
   );
 
   // Keep the timeline hidden until at least one loaded credential exposes a

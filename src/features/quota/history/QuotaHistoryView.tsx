@@ -4,9 +4,8 @@ import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { useNow } from '@/hooks/useNow';
 import { normalizeAuthIndex } from '@/utils/authIndex';
-import { getQuotaDisplayName } from '@/utils/quota/identity';
+import { createQuotaLabelResolver, type QuotaLabelResolver } from '@/utils/quota/identity';
 import type { QuotaFileEntry } from '../logic';
-import { maskQuotaIdentity } from '../pool';
 import {
   analyzeQuotaHistory,
   buildHistoryTracks,
@@ -32,7 +31,7 @@ export interface QuotaHistoryViewProps {
 function accountLabel(
   track: HistoryTrack,
   entries: readonly QuotaFileEntry[],
-  showEmails: boolean
+  labelForFile: QuotaLabelResolver
 ): string {
   const indexes = new Set(track.samples.map((sample) => sample.authIndex));
   const match = entries.find(
@@ -40,10 +39,9 @@ function accountLabel(
       entry.type === track.provider &&
       indexes.has(normalizeAuthIndex(entry.file.authIndex ?? entry.file['auth_index']) ?? '')
   );
-  const label = match
-    ? getQuotaDisplayName(match.file)
+  return match
+    ? labelForFile(match.file)
     : `${track.accountId.slice(0, 8)}…${track.accountId.slice(-4)}`;
-  return showEmails ? label : maskQuotaIdentity(label);
 }
 
 export function QuotaHistoryView({
@@ -63,6 +61,14 @@ export function QuotaHistoryView({
   const titleId = useId();
   const descriptionId = useId();
   const [selectedKey, setSelectedKey] = useState('');
+  const labelForFile = useMemo(
+    () =>
+      createQuotaLabelResolver(
+        entries.map((entry) => entry.file),
+        showEmails
+      ),
+    [entries, showEmails]
+  );
   const tracks = useMemo(() => buildHistoryTracks(state.samples), [state.samples]);
   const track =
     tracks.find((item) => item.key === selectedKey) ??
@@ -139,7 +145,7 @@ export function QuotaHistoryView({
       : t('quota_history.limit', { id: item.limitId });
   };
   const trackLabel = (item: HistoryTrack) =>
-    `${item.provider === 'claude' ? 'Claude' : 'Codex'} · ${accountLabel(item, entries, showEmails)} · ${limitLabel(item)} · ${
+    `${item.provider === 'claude' ? 'Claude' : 'Codex'} · ${accountLabel(item, entries, labelForFile)} · ${limitLabel(item)} · ${
       item.periodSeconds === null
         ? t('quota_history.period_unknown')
         : t('quota_pool.period', { hours: item.periodSeconds / 3600 })

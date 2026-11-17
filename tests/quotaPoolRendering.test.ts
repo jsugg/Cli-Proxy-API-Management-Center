@@ -46,7 +46,7 @@ test('timeline masks email identities by default, including titles', () => {
     })
   );
   expect(markup).not.toContain('alice@example.com');
-  expect(markup).toContain('a•••@e•••.json');
+  expect(markup).toContain('al…e@example.com');
 });
 
 test('quota cards hide email identities by default and allow explicit reveal', () => {
@@ -55,9 +55,8 @@ test('quota cards hide email identities by default and allow explicit reveal', (
     'utf8'
   );
   expect(source).toContain('showEmails = false');
-  expect(source).toContain('showEmails ? identity : maskQuotaIdentity(identity)');
-  expect(source).toContain('accountLabel: showEmails');
-  expect(source).toContain('maskQuotaIdentity(creditOverage.context.accountLabel)');
+  expect(source).toContain('labelForFile?.(file) ?? getQuotaDisplayLabel(file, showEmails)');
+  expect(source).toContain('context={creditOverageDialogContext}');
 });
 
 test('development fixture renders the real summary with a privacy toggle', () => {

@@ -10,6 +10,7 @@ import {
 } from '@/services/api/claudeResetGrants';
 import type { AuthFileItem } from '@/types';
 import { normalizeAuthIndex } from '@/utils/quota';
+import { getQuotaDisplayLabel, type QuotaLabelResolver } from '@/utils/quota/identity';
 import {
   resetGrantOperations,
   RETRY_WINDOW_MS,
@@ -25,7 +26,8 @@ export function useClaudeResetGrants(
   enabled: boolean,
   disabled: boolean,
   refreshToken: unknown,
-  onRefresh: () => void
+  onRefresh: () => void,
+  labelForFile?: QuotaLabelResolver
 ) {
   const { t } = useTranslation();
   const connectionStatus = useAuthStore((state) => state.connectionStatus);
@@ -108,7 +110,7 @@ export function useClaudeResetGrants(
       showNotification(
         answer.code === 'cooldown_clear_failed'
           ? t('auth_files.cooldown_reset_failed', {
-              name: file.name,
+              name: labelForFile?.masked(file) ?? getQuotaDisplayLabel(file),
               message: t('common.unknown_error'),
             })
           : t(`claude_reset.${answer.unresolved ? 'unknown' : answer.code}`),

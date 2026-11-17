@@ -4,6 +4,7 @@ import { useNotificationStore, useQuotaStore } from '@/stores';
 import { apiClient } from '@/services/api';
 import type { AuthFileItem, CodexQuotaState } from '@/types';
 import { normalizeAuthIndex } from '@/utils/authIndex';
+import { getQuotaDisplayLabel, type QuotaLabelResolver } from '@/utils/quota/identity';
 import {
   applyCodexCreditOverage,
   buildCodexCreditOverageContext,
@@ -28,7 +29,8 @@ export interface CodexCreditOverageFeedback {
 export function useCodexCreditOverage(
   file: AuthFileItem,
   quota: CodexQuotaState | undefined,
-  disabled: boolean
+  disabled: boolean,
+  labelForFile?: QuotaLabelResolver
 ) {
   const { t } = useTranslation();
   const showNotification = useNotificationStore((state) => state.showNotification);
@@ -117,7 +119,7 @@ export function useCodexCreditOverage(
             outcome.value
               ? 'codex_quota.credit_overage_success_allowed'
               : 'codex_quota.credit_overage_success_blocked',
-            { name: context.accountLabel }
+            { name: labelForFile?.masked(file) ?? getQuotaDisplayLabel(file) }
           ),
           'success'
         );

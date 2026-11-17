@@ -45,7 +45,7 @@ describe('Devin quota identity', () => {
 
   test('disambiguates displayed identities without using account secrets', () => {
     expect(getQuotaDisplayName({ ...devinFile('42'), email: 'demo@example.test' })).toBe(
-      'shared.json · demo@example.test'
+      'demo@example.test'
     );
     expect(getQuotaDisplayName({ ...devinFile('42'), account: 'secret' })).toBe('shared.json · 42');
     expect(getQuotaDisplayName({ ...devinFile(null), account: 'secret' })).toBe('shared.json');

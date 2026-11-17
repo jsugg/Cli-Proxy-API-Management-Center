@@ -115,11 +115,4 @@ export function buildQuotaPools(
   });
 }
 
-/** Redact email addresses in filenames and identity labels, including their domains. */
-export function maskQuotaIdentity(value: string): string {
-  return value.replace(
-    /(claude-|codex-)?([^\s@/<>]+)@([^\s@/<>]+)/gi,
-    (_match, prefix: string | undefined, local: string, domain: string) =>
-      `${prefix ?? ''}${local[0]}•••@${domain[0]}•••${domain.endsWith('.json') ? '.json' : ''}`
-  );
-}
+export { maskQuotaIdentity } from '@/utils/quota/identity';

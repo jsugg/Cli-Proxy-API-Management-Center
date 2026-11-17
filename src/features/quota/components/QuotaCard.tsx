@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { IconChevronDown, IconRefreshCw } from '@/components/ui/icons';
 import type { ClaudeQuotaState, CodexQuotaState, ResolvedTheme } from '@/types';
 import { resolveQuotaErrorMessage } from '@/utils/quota';
-import { getQuotaDisplayName } from '@/utils/quota/identity';
+import { getQuotaDisplayLabel, type QuotaLabelResolver } from '@/utils/quota/identity';
 import {
   getAuthFileIcon,
   getThemeSurfaceIconBackground,
@@ -18,7 +18,6 @@ import {
 import { bindQuotaClasses } from '../types';
 import { QUOTA_ADAPTERS, type QuotaCardState } from '../providers';
 import { isQuotaRefreshDisabled, type QuotaFileEntry } from '../logic';
-import { maskQuotaIdentity } from '../pool';
 import { useClaudeResetGrants } from '../providers/claude/ClaudeResetGrants';
 import { ClaudeResetGrantDialog } from '../providers/claude/ClaudeResetGrantDialog';
 import { ClaudeResetGrantDetails } from '../providers/claude/ClaudeResetGrantDetails';
@@ -33,6 +32,7 @@ import styles from './QuotaCard.module.scss';
 const quotaClasses = bindQuotaClasses(bodyStyles, 'QuotaBody.module.scss');
 
 export type QuotaCardProps = {
+  labelForFile?: QuotaLabelResolver;
   showEmails?: boolean;
   entry: QuotaFileEntry;
   quota?: QuotaCardState;
@@ -65,6 +65,7 @@ export function QuotaCard(props: QuotaCardProps) {
     onToggleGlance,
     creditOverageSharedCount = 1,
     showEmails = false,
+    labelForFile,
     onRefresh,
     onReset,
   } = props;
@@ -73,8 +74,7 @@ export function QuotaCard(props: QuotaCardProps) {
   const file = entry.file;
   const retainedClaudeUsage =
     entry.type === 'claude' && hasClaudeUsageData(quota as ClaudeQuotaState | undefined);
-  const identity = getQuotaDisplayName(file);
-  const displayName = showEmails ? identity : maskQuotaIdentity(identity);
+  const displayName = labelForFile?.(file) ?? getQuotaDisplayLabel(file, showEmails);
 
   // Capture the entrance delay only at mount, without a render-time ref read.
   const [mountEntranceDelayMs] = useState<number | null>(entranceDelayMs ?? null);
@@ -90,7 +90,8 @@ export function QuotaCard(props: QuotaCardProps) {
     entry.type === 'claude' && status !== 'idle',
     !canRefresh || loading || resetting,
     quota,
-    onRefresh
+    onRefresh,
+    labelForFile
   );
   const providerType =
     entry.type === 'plugin'
@@ -126,15 +127,11 @@ export function QuotaCard(props: QuotaCardProps) {
   const creditOverage = useCodexCreditOverage(
     file,
     entry.type === 'codex' ? (quota as CodexQuotaState | undefined) : undefined,
-    !canRefresh || loading || resetting
+    !canRefresh || loading || resetting,
+    labelForFile
   );
   const creditOverageDialogContext = creditOverage.context
-    ? {
-        ...creditOverage.context,
-        accountLabel: showEmails
-          ? creditOverage.context.accountLabel
-          : maskQuotaIdentity(creditOverage.context.accountLabel),
-      }
+    ? { ...creditOverage.context, accountLabel: displayName }
     : null;
   const codexAfterPlan = creditOverage.visible ? (
     <CodexCreditOverageRow

@@ -4,6 +4,7 @@ import type { AnthropicResetGrant } from '@/services/api/claudeResetGrants';
 import { buildResetDisplay, parseIsoToMs } from '@/utils/quota';
 import { resolveTimeZoneLabel } from '@/utils/time/timezone';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
+import { formatResetWindows } from './resetGrantChoice';
 import type { QuotaClassMap } from '../../types';
 
 interface ClaudeResetGrantDetailsProps {
@@ -26,6 +27,7 @@ export function ClaudeResetGrantDetails({ grants, classes }: ClaudeResetGrantDet
       <div className={classes.codexResetCreditsTitle}>
         {t('claude_reset.expiry_title', { timezone: resolveTimeZoneLabel() })}
       </div>
+      <div className={classes.codexResetCreditLabel}>{t('quota_reset.bank_hint')}</div>
       {remaining.map((grant, index) => {
         const display = buildResetDisplay(
           null,
@@ -39,6 +41,12 @@ export function ClaudeResetGrantDetails({ grants, classes }: ClaudeResetGrantDet
               {grant.label || t('claude_reset.grant_number', { index: index + 1 })}
               {' · '}
               {t('claude_reset.count', { left: grant.resetsLeft, total: grant.resetsTotal })}
+              {grant.clears.length > 0 && (
+                <>
+                  {' · '}
+                  {t('claude_reset.clears', { windows: formatResetWindows(t, grant.clears) })}
+                </>
+              )}
             </span>
             <span className={classes.codexResetCreditTime}>
               {display ? (

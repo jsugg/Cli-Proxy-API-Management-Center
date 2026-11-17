@@ -5,6 +5,7 @@ import { PROVIDER_LOGOS } from '../brandLogos';
 import { getKimiAffiliateUrl } from '../kimi';
 import { APIKEY_FUN_AFFILIATE_URL, APIKEY_FUN_DASHBOARD_URL } from '../sponsor';
 import { getSponsorProviderDefinition } from '../sponsorDefinitions';
+import { shouldShowSubscriptionSummary } from '../subscriptions';
 import type { ProviderGroup, ProviderResource } from '../types';
 import { ProviderResourceTable } from './ProviderResourceTable';
 import { ProviderResourceToolbar } from './ProviderResourceToolbar';
@@ -98,7 +99,9 @@ export function ProviderResourcePanel({
       ) : null}
       <h2 className={styles.title}>
         {providerTitle}
-        {group.subscriptions ? ` · ${t('providersPage.subscriptions.apiKeys')}` : ''}
+        {shouldShowSubscriptionSummary(group.id, group.subscriptions)
+          ? ` · ${t('providersPage.subscriptions.apiKeys')}`
+          : ''}
       </h2>
       {showSponsorDashboardLink ? (
         <IconExternalLink className={styles.titleExternalIcon} size={16} />

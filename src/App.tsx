@@ -31,6 +31,15 @@ const devPreviewRoutes = import.meta.env.DEV
           return { Component: QuotaTierPreview };
         },
       },
+      {
+        path: '/__preview/availability',
+        HydrateFallback: () => null,
+        lazy: async () => {
+          const { AvailabilityPreview } =
+            await import('@/features/quota/preview/AvailabilityPreview');
+          return { Component: AvailabilityPreview };
+        },
+      },
     ]
   : [];
 

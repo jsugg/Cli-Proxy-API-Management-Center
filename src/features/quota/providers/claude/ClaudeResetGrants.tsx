@@ -6,6 +6,7 @@ import { useNotificationStore } from '@/stores';
 import { apiClient } from '@/services/api/client';
 import {
   AnthropicResetGrantError,
+  type AnthropicResetGrant,
   type AnthropicResetGrantStatus,
 } from '@/services/api/claudeResetGrants';
 import type { AuthFileItem } from '@/types';
@@ -17,7 +18,7 @@ import {
   ResetGrantPreflightError,
   resetGrantFailureMessageKey,
 } from './resetGrantOperations';
-import { canChooseResetGrant } from './resetGrantChoice';
+import { canChooseResetGrant, resetGrantUnavailableReason } from './resetGrantChoice';
 import { readResetGrantsForCard, scheduleResetGrantRead } from './resetGrantReads';
 
 /** Card-owned reads; the session-scoped journal owns spending and ambiguous retries. */
@@ -160,6 +161,12 @@ export function useClaudeResetGrants(
     buttonLabel: pending ? 'retry' : 'use',
     pendingGrantId: pending?.grantId,
     canRedeemGrant,
+    unavailableReason: (grant: AnthropicResetGrant) =>
+      pending
+        ? pending.grantId === grant.id
+          ? null
+          : 'pending_other'
+        : resetGrantUnavailableReason(status, grant, now),
     busy,
     confirm,
     message: pending ? (expired ? 'expired' : 'unknown') : message,

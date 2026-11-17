@@ -1,0 +1,61 @@
+.explainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+
+  p {
+    margin: 0;
+  }
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.heading {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 2px 12px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: var(--bg-secondary);
+  }
+}
+
+.when {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.muted {
+  color: var(--text-secondary);
+}
+
+.caution {
+  padding: 8px 10px;
+  border-left: 3px solid var(--warning-color);
+  background: var(--bg-secondary);
+  border-radius: 0 8px 8px 0;
+}

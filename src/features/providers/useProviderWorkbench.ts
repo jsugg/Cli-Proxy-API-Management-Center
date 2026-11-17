@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { authFilesApi, providersApi } from '@/services/api';
 import type { AuthFileItem } from '@/types/authFile';
+import {
+  isSubscriptionBrand,
+  subscriptionBrandForType,
+  summarizeSubscriptions,
+} from './subscriptions';
 import { getErrorMessage } from '@/utils/helpers';
 import { useAuthStore, useConfigStore } from '@/stores';
 import {
@@ -376,22 +381,19 @@ export const buildProviderGroups = (
   config: Config,
   authFiles?: readonly AuthFileItem[]
 ): ProviderGroup[] => {
-  const subscriptions = new Map<string, { total: number; active: number }>();
+  const accountsByBrand = new Map<ProviderBrand, AuthFileItem[]>();
   for (const file of authFiles ?? []) {
-    const type = file.type || file.provider;
+    const brand = subscriptionBrandForType(file.type || file.provider);
     if (
-      (type !== 'claude' && type !== 'codex') ||
+      !brand ||
       file.account_type !== 'oauth' ||
       file.runtimeOnly === true ||
       file.runtimeOnly === 'true'
     )
       continue;
-    const counts = subscriptions.get(type) ?? { total: 0, active: 0 };
-    counts.total += 1;
-    if (!file.disabled && !file.unavailable && (!file.status || file.status === 'active')) {
-      counts.active += 1;
-    }
-    subscriptions.set(type, counts);
+    const accounts = accountsByBrand.get(brand) ?? [];
+    accounts.push(file);
+    accountsByBrand.set(brand, accounts);
   }
   return PROVIDER_BRAND_ORDER.reduce<ProviderGroup[]>((groups, brand) => {
     let resources: ProviderResource[];
@@ -495,8 +497,8 @@ export const buildProviderGroups = (
     groups.push({
       id: brand,
       resources,
-      ...(authFiles && (brand === 'claude' || brand === 'codex')
-        ? { subscriptions: subscriptions.get(brand) ?? { total: 0, active: 0 } }
+      ...(authFiles && isSubscriptionBrand(brand)
+        ? { subscriptions: summarizeSubscriptions(accountsByBrand.get(brand) ?? []) }
         : {}),
     });
     return groups;
@@ -542,8 +544,8 @@ export function useProviderWorkbench(): UseProviderWorkbenchResult {
     };
     setIsFetching(true);
     setErrorMessage(null);
-    setAuthFiles(undefined);
-    setSubscriptionStatus('loading');
+    // Keep the last account summary visible while revalidating; the session reset below clears it.
+    setSubscriptionStatus((status) => (status === 'error' ? 'loading' : status));
     try {
       const [configResult, vertexResult, openaiResult, credentialsResult] =
         await Promise.allSettled([
@@ -557,6 +559,7 @@ export function useProviderWorkbench(): UseProviderWorkbenchResult {
         setAuthFiles(credentialsResult.value.files);
         setSubscriptionStatus('ready');
       } else {
+        setAuthFiles(undefined);
         setSubscriptionStatus('error');
       }
       if (configResult.status !== 'fulfilled') {
@@ -582,6 +585,12 @@ export function useProviderWorkbench(): UseProviderWorkbenchResult {
   const refreshSnapshot = useCallback(() => {
     setFetchedAt(new Date().toISOString());
   }, []);
+
+  // A different server or key must never show the previous session's accounts.
+  useEffect(() => {
+    setAuthFiles(undefined);
+    setSubscriptionStatus('loading');
+  }, [apiBase, managementKey]);
 
   useEffect(() => {
     if (!connected) return;

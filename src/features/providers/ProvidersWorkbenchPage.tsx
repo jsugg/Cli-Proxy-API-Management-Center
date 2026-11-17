@@ -16,6 +16,7 @@ import { ProviderHeaderCard } from './components/ProviderHeaderCard';
 import { ProviderCategoryList } from './components/ProviderCategoryList';
 import { ProviderResourcePanel } from './components/ProviderResourcePanel';
 import { ProviderSubscriptionSummary } from './components/ProviderSubscriptionSummary';
+import { isSubscriptionBrand } from './subscriptions';
 import type { ProviderPanelControls } from './components/ProviderResourcePanel';
 import { SponsorCampaignCard } from './components/SponsorCampaignCard';
 import { SponsorQuickStartPanel } from './components/SponsorQuickStartPanel';
@@ -278,7 +279,7 @@ export function ProvidersWorkbenchPage({ fixedBrand }: ProvidersWorkbenchPagePro
     [groups]
   );
   const summaryNotice =
-    groups.some((group) => group.id === 'claude' || group.id === 'codex') &&
+    groups.some((group) => isSubscriptionBrand(group.id)) &&
     workbench.subscriptionStatus !== 'ready'
       ? t(
           workbench.subscriptionStatus === 'error'

@@ -120,10 +120,23 @@ export interface ProviderResource {
   raw: unknown;
 }
 
+export interface ProviderSubscriptionSummary {
+  total: number;
+  /** Usable now. */
+  active: number;
+  /** Provider usage limit reached; recovers automatically. */
+  limited: number;
+  /** Auth, transport or service failures that need a person. */
+  attention: number;
+  disabled: number;
+  /** Earliest reported recovery among limited accounts. */
+  nextAvailableAt: number | null;
+}
+
 export interface ProviderGroup {
   id: ProviderBrand;
   resources: ProviderResource[];
-  subscriptions?: { total: number; active: number };
+  subscriptions?: ProviderSubscriptionSummary;
 }
 
 export interface ProviderSnapshot {

@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { PROVIDER_LOGOS } from '../brandLogos';
+import { isSubscriptionBrand, shouldShowSubscriptionSummary } from '../subscriptions';
 import type { ProviderBrand, ProviderGroup } from '../types';
 import styles from './ProviderCategoryList.module.scss';
 
@@ -37,8 +38,7 @@ export function ProviderCategoryList({
         const total = group.resources.length + (group.subscriptions?.total ?? 0);
         const activeCount =
           group.resources.filter((r) => !r.disabled).length + (group.subscriptions?.active ?? 0);
-        const unknown =
-          (group.id === 'claude' || group.id === 'codex') && subscriptionStatus !== 'ready';
+        const unknown = isSubscriptionBrand(group.id) && subscriptionStatus !== 'ready';
         const logo = PROVIDER_LOGOS[group.id];
         const itemClass = [
           styles.item,
@@ -103,10 +103,10 @@ export function ProviderCategoryList({
                         total,
                       })}
                 </span>
-                {group.subscriptions ? (
+                {shouldShowSubscriptionSummary(group.id, group.subscriptions) ? (
                   <span className={styles.itemSubtitle}>
                     {t('providersPage.subscriptions.breakdown', {
-                      subscriptions: group.subscriptions.total,
+                      subscriptions: group.subscriptions?.total ?? 0,
                       keys: group.resources.length,
                     })}
                   </span>

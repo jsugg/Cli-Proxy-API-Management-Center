@@ -17,6 +17,7 @@ import type { AuthFileItem, ResolvedTheme, ThemeColors } from '@/types';
 import { normalizeOAuthProviderKey } from '@/utils/providerKeys';
 import { parseTimestamp } from '@/utils/timestamp';
 import { TYPE_COLORS } from '@/utils/quota';
+import { classifyAuthFileAvailability } from './availability';
 
 export type { ResolvedTheme, ThemeColors, TypeColorSet } from '@/types';
 export type AuthFileModelItem = {
@@ -28,14 +29,7 @@ export type AuthFileModelItem = {
 export type AuthFileIconAsset = string | { light: string; dark: string };
 
 export type QuotaProviderType =
-  | 'antigravity'
-  | 'claude'
-  | 'codex'
-  | 'devin'
-  | 'kimi'
-  | 'meta'
-  | 'plugin'
-  | 'xai';
+  'antigravity' | 'claude' | 'codex' | 'devin' | 'kimi' | 'meta' | 'plugin' | 'xai';
 export type AuthFileQuotaFilter = string | null;
 export type OAuthConfigLoadError = 'loading' | 'unsupported' | 'load' | null;
 
@@ -143,18 +137,20 @@ export const HEALTHY_AUTH_FILE_STATUS_MESSAGES = new Set([
 /** 是否存在非健康的 status_message（卡片告警态 / 谱条琥珀色共用判定）。 */
 export const hasAuthFileStatusWarning = (file: AuthFileItem): boolean => {
   const message = getAuthFileStatusMessage(file);
-  return Boolean(message) && !HEALTHY_AUTH_FILE_STATUS_MESSAGES.has(message.toLowerCase());
+  return (
+    Boolean(message) &&
+    !HEALTHY_AUTH_FILE_STATUS_MESSAGES.has(message.toLowerCase()) &&
+    classifyAuthFileAvailability(file).state !== 'limited'
+  );
 };
 
 /**
  * 是否为需要用户处理的问题凭证。
  * 主动停用是独立状态，不应进入“问题”筛选或“删除问题凭证”的批量操作。
+ * Reaching a provider usage limit is expected and self-healing, so it is not a problem either.
  */
-export const isProblemAuthFile = (file: AuthFileItem): boolean => {
-  const status = typeof file.status === 'string' ? file.status.trim().toLowerCase() : '';
-  if (file.disabled === true || status === 'disabled') return false;
-  return file.unavailable === true || status === 'error' || hasAuthFileStatusWarning(file);
-};
+export const isProblemAuthFile = (file: AuthFileItem): boolean =>
+  classifyAuthFileAvailability(file).state === 'attention';
 
 export const getTypeLabel = (t: TFunction, type: string): string => {
   const providerKey = normalizeProviderKey(type);

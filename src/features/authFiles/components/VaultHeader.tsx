@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { IconRefreshCw, IconUpload } from '@/components/ui/icons';
 import { useRevealGroup } from '@/hooks/motion';
+import { formatInstantShort } from '@/utils/quota';
 import styles from './VaultHeader.module.scss';
 
 export type VaultHeaderProps = {
@@ -11,6 +12,8 @@ export type VaultHeaderProps = {
   totalCount: number;
   activeCount: number;
   problemCount: number;
+  limitedCount?: number;
+  nextAvailableAt?: number | null;
   loading: boolean;
   refreshing: boolean;
   uploading: boolean;
@@ -34,6 +37,8 @@ export function VaultHeader(props: VaultHeaderProps) {
     totalCount,
     activeCount,
     problemCount,
+    limitedCount = 0,
+    nextAvailableAt = null,
     loading,
     refreshing,
     uploading,
@@ -61,8 +66,23 @@ export function VaultHeader(props: VaultHeaderProps) {
             ·
           </span>
           <span className={activeCount > 0 ? styles.metaActive : styles.metaMuted}>
-            {t('auth_files.meta_active', { count: activeCount })}
+            {t('auth_files.meta_available', { count: activeCount })}
           </span>
+          {limitedCount > 0 && (
+            <>
+              <span className={styles.metaDot} aria-hidden="true">
+                ·
+              </span>
+              <span className={styles.metaLimited}>
+                {nextAvailableAt !== null
+                  ? t('auth_files.meta_limited_until', {
+                      count: limitedCount,
+                      time: formatInstantShort(nextAvailableAt),
+                    })
+                  : t('auth_files.meta_limited', { count: limitedCount })}
+              </span>
+            </>
+          )}
           {problemCount > 0 && (
             <>
               <span className={styles.metaDot} aria-hidden="true">

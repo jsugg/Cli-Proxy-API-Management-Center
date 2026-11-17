@@ -131,6 +131,7 @@ export function CodexQuotaBody({
           <div className={classes.codexResetCreditsTitle}>
             {t('codex_quota.reset_credits_expiry_label', { timezone: resolveTimeZoneLabel() })}
           </div>
+          <div className={classes.codexResetCreditLabel}>{t('quota_reset.bank_hint')}</div>
           {rateLimitResetCredits.map((credit, index) => {
             const expiresAtMs = parseIsoToMs(credit.expiresAt);
             const expiresDisplay = buildResetDisplay(

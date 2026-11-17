@@ -33,6 +33,8 @@ import { deriveAuthFileIdentity } from '@/features/authFiles/identity';
 import { resolveAuthFileQuotaType } from '@/features/authFiles/logic';
 import type { AuthFileStatusBarData } from '@/features/authFiles/hooks/useAuthFilesStatusBarCache';
 import { AuthFileQuotaSection } from '@/features/authFiles/components/AuthFileQuotaSection';
+import { classifyAuthFileAvailability } from '@/features/authFiles/availability';
+import { AuthFileLimitNotice } from './AuthFileLimitNotice';
 import { AuthFileCooldownSection } from './AuthFileCooldownSection';
 import { getSiwcBindingStatus, supportsSiwcBinding } from '@/features/oauth/siwcBinding';
 import { SiwcStatusBadge } from '@/features/oauth/components/SiwcStatusBadge';
@@ -109,6 +111,7 @@ export function AuthFileCard(props: AuthFileCardProps) {
 
   const rawStatusMessage = getAuthFileStatusMessage(file);
   const hasStatusWarning = hasAuthFileStatusWarning(file);
+  const availability = classifyAuthFileAvailability(file);
 
   const priorityValue = Number.isSafeInteger(file.priority) ? file.priority : undefined;
   const weightValue = Number.isSafeInteger(file.weight) ? file.weight : undefined;
@@ -180,6 +183,10 @@ export function AuthFileCard(props: AuthFileCardProps) {
         <p className={styles.note} title={noteValue}>
           {noteValue}
         </p>
+      )}
+
+      {availability.state === 'limited' && (
+        <AuthFileLimitNotice availableAt={availability.availableAt} />
       )}
 
       {rawStatusMessage && hasStatusWarning && (

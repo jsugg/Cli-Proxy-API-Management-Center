@@ -4,7 +4,10 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { resetGrantHasNoUsage, type AnthropicResetGrant } from '@/services/api/claudeResetGrants';
 import { formatInstantShort, parseIsoToMs } from '@/utils/quota';
-import { resetGrantKind } from './resetGrantChoice';
+import { resolveTimeZoneLabel } from '@/utils/time/timezone';
+import { AutomaticRenewalList } from '../../reset/AutomaticRenewalList';
+import type { AutomaticRenewal } from '../../reset/resetSemantics';
+import { formatResetWindows, resetGrantKind } from './resetGrantChoice';
 import styles from './ClaudeResetGrantDialog.module.scss';
 
 type ChoiceProps = {
@@ -12,6 +15,8 @@ type ChoiceProps = {
   selected: string | null;
   canRedeemGrant: (id: string) => boolean;
   onSelect: (id: string) => void;
+  /** Reason code for an unselectable grant; omitted callers fall back to a generic note. */
+  unavailableReason?: (grant: AnthropicResetGrant) => string | null;
 };
 
 /** Native radios retain arrow-key navigation without a second confirmation dialog. */
@@ -20,6 +25,7 @@ export function ClaudeResetGrantChoices({
   selected,
   canRedeemGrant,
   onSelect,
+  unavailableReason,
 }: ChoiceProps) {
   const { t } = useTranslation();
   const name = useId();
@@ -47,10 +53,17 @@ export function ClaudeResetGrantChoices({
               <span>
                 {t('claude_reset.count', { left: grant.resetsLeft, total: grant.resetsTotal })}
               </span>
+              {grant.clears.length > 0 && (
+                <span>
+                  {t('claude_reset.clears', { windows: formatResetWindows(t, grant.clears) })}
+                </span>
+              )}
               <span>
                 {t('claude_reset.grant_expiry', {
                   date:
-                    expiry === null ? t('claude_reset.expiry_unknown') : formatInstantShort(expiry),
+                    expiry === null
+                      ? t('claude_reset.expiry_unknown')
+                      : `${formatInstantShort(expiry)} (${resolveTimeZoneLabel()})`,
                 })}
               </span>
               <span>
@@ -62,7 +75,12 @@ export function ClaudeResetGrantChoices({
               </span>
               {resetGrantHasNoUsage(grant) && <span>{t('claude_reset.no_usage')}</span>}
               {!available && !resetGrantHasNoUsage(grant) && (
-                <span>{t('claude_reset.grant_unavailable')}</span>
+                <span>
+                  {t(
+                    `claude_reset.reason_${unavailableReason?.(grant) ?? 'unknown'}`,
+                    t('claude_reset.grant_unavailable')
+                  )}
+                </span>
               )}
             </span>
           </label>
@@ -79,6 +97,8 @@ type Props = ChoiceProps & {
   pendingGrantId?: string;
   message: string;
   name: string;
+  /** Limits that renew without spending a reset, shown so waiting is a visible option. */
+  renewals?: readonly AutomaticRenewal[];
   onConfirm: () => void;
   onClose: () => void;
 };
@@ -122,6 +142,7 @@ export function ClaudeResetGrantDialog(props: Props) {
           name: props.name,
         })}
       </p>
+      <p className={styles.explain}>{t('claude_reset.effect')}</p>
       {props.loading ? (
         <p role="status" aria-busy="true">
           {t('common.loading')}
@@ -129,6 +150,13 @@ export function ClaudeResetGrantDialog(props: Props) {
       ) : (
         <ClaudeResetGrantChoices {...props} />
       )}
+      {props.renewals && (
+        <section className={styles.renewals}>
+          <h4>{t('quota_reset.renewal_heading')}</h4>
+          <AutomaticRenewalList renewals={props.renewals} />
+        </section>
+      )}
+      <p className={styles.explain}>{t('quota_reset.irreversible')}</p>
       {props.message && <p role="status">{t(`claude_reset.${props.message}`)}</p>}
     </Modal>
   );

@@ -2,7 +2,7 @@
   "quota_history": {
     "now": "Bây giờ",
     "title": "Lịch sử hạn mức",
-    "subtitle": "Quan sát từ máy chủ, cập nhật mỗi phút. Trình duyệt không thăm dò nhà cung cấp.",
+    "subtitle": "Số liệu do bộ thu thập phía máy chủ ghi lại. Trình duyệt không thăm dò nhà cung cấp.",
     "range": "{{hours}} giờ qua",
     "range_label": "Khoảng lịch sử",
     "refresh": "Làm mới lịch sử",
@@ -32,7 +32,7 @@
     "evidence": "Mẫu liên tục gần đây: {{count}} trong {{span}} phút. Tuổi mẫu mới nhất: {{age}} phút. Quan sát dùng được trong 60 phút: {{known}}/{{total}}.",
     "chart_description": "Phần trăm còn lại theo thời gian. Chấm và đường liền là quan sát thực, đường đứt là dự báo tốc độ không đổi. Vùng tô là khoảng trống, vạch chấm là chu kỳ hoặc chuỗi mới.",
     "gap": "Không rõ / thiếu quan sát",
-    "change": "Đổi chu kỳ / chuỗi",
+    "change": "Làm mới cửa sổ",
     "recorded": "Đã ghi",
     "projected": "Dự báo",
     "assumption": "Giả định tốc độ gần đây không đổi đến lần đặt lại được báo hoặc tối đa một giờ, không tự giả định nạp lại. Đơn vị là điểm phần trăm mỗi giờ, không phải token hay dung lượng gộp. Đây không phải độ tin cậy thống kê.",
@@ -40,7 +40,16 @@
     "table_limit": "Hiện {{shown}} quan sát mới nhất trong {{total}} đã tải.",
     "observed_at": "Thời điểm quan sát",
     "reset": "Lần đặt lại được báo",
-    "load_more": "Tải thêm quan sát"
+    "load_more": "Tải thêm quan sát",
+    "range_days": "{{count}} ngày qua",
+    "refresh_failed": "Không làm mới được lịch sử. Đang hiển thị dữ liệu đến {{time}}.",
+    "no_readings": "Bộ thu thập đang chạy nhưng chưa có số liệu dùng được trong khoảng này.",
+    "unreadable_limits": "Giới hạn không có số liệu dùng được trong khoảng này (ẩn): {{count}}.",
+    "range_flat": "Không ghi nhận thay đổi trong khoảng này: còn lại giữ ở {{value}} qua {{count}} lần đọc.",
+    "range_span": "Phần còn lại ghi nhận dao động từ {{low}} đến {{high}} qua {{count}} lần đọc.",
+    "overview_stale": "Không có số liệu gần đây",
+    "overview_moved": "{{low}}–{{high}} trong khoảng",
+    "overview_flat": "Không đổi trong khoảng"
   },
   "quota_pool": {
     "title": "Hạn mức còn lại theo nhà cung cấp",
@@ -496,7 +505,14 @@
     "policy_rules_hint": "Các quy tắc tùy chỉnh được ưu tiên theo thứ tự danh sách. Kế thừa hoặc danh sách trống sẽ sử dụng quy tắc kế thừa; điều này không vô hiệu hóa chúng. Mẫu biểu thức chính quy (Regex) dùng cú pháp của Go.",
     "policy_retry_invalid": "Nhập một số nguyên an toàn không âm, hoặc chọn Kế thừa.",
     "policy_aliases_invalid": "Nhập tên model và bí danh không để trống cho mỗi hàng mới hoặc đã chỉnh sửa.",
-    "policy_rules_invalid": "Hoàn thành mỗi quy tắc đã chỉnh sửa với mã trạng thái dương, một hành động và ít nhất một điều kiện khớp không để trống."
+    "policy_rules_invalid": "Hoàn thành mỗi quy tắc đã chỉnh sửa với mã trạng thái dương, một hành động và ít nhất một điều kiện khớp không để trống.",
+    "limit_reached": "Đã chạm giới hạn sử dụng.",
+    "limit_available_again": "Dùng lại được {{relative}} · {{time}} ({{timezone}}).",
+    "limit_renews_automatically": "Sẽ tự làm mới; nhà cung cấp không cho biết thời điểm.",
+    "problem_filter_limited": "Chạm giới hạn",
+    "meta_available": "{{count}} sẵn sàng",
+    "meta_limited": "{{count}} chạm giới hạn",
+    "meta_limited_until": "{{count}} chạm giới hạn · sớm nhất {{time}}"
   },
   "antigravity_subscription": {
     "plan_unknown": "Không rõ",
@@ -612,14 +628,14 @@
     "plan_label": "Gói",
     "expires_label": "Thời gian gia hạn",
     "reset_credits_label": "Lượt đặt lại thủ công",
-    "reset_credits_expiry_label": "Hết hạn đặt lại thủ công ({{timezone}})",
+    "reset_credits_expiry_label": "Lượt đặt lại thủ công có thể dùng · hạn dùng ({{timezone}})",
     "reset_credit_number": "Lượt đặt lại {{index}}",
     "reset_credits_expiry_failed": "Không thể tải thời hạn đặt lại thủ công: {{message}}",
     "reset_credits_invalid_payload": "Phản hồi thời hạn đặt lại thủ công không hợp lệ",
-    "reset_button": "Đặt lại quota",
-    "reset_confirm_title": "Đặt lại quota Codex",
+    "reset_button": "Dùng lượt đặt lại thủ công…",
+    "reset_confirm_title": "Dùng lượt đặt lại thủ công Codex",
     "reset_confirm_message": "Thao tác này sẽ dùng 1 lượt đặt lại thủ công để đặt lại quota Codex cho \"{{name}}\". Tiếp tục?",
-    "reset_confirm_button": "Đặt lại quota",
+    "reset_confirm_button": "Dùng 1 lượt đặt lại",
     "reset_not_confirmed": "Chưa xác nhận đặt lại quota thành công. Hãy làm mới quota trước khi thử lại.",
     "reset_cooldown_failed": "Quota đã được đặt lại nhưng không thể xóa thời gian chờ của gateway. Trên kết nối ban đầu, hãy dùng chức năng xóa thời gian chờ ở trang tệp xác thực; không sử dụng thêm lượt đặt lại.",
     "reset_success": "Đã đặt lại quota Codex cho \"{{name}}\"",
@@ -1684,7 +1700,9 @@
     "search_placeholder": "Tìm theo tên file hoặc email",
     "search_empty_title": "Không có tài khoản phù hợp",
     "search_empty_desc": "Hãy thử tên file hoặc email khác, hoặc xóa tìm kiếm.",
-    "search_clear": "Xóa tìm kiếm"
+    "search_clear": "Xóa tìm kiếm",
+    "freshness": "Cập nhật {{relative}}",
+    "freshness_stale": "Cập nhật lần cuối {{relative}}"
   },
   "routing": {
     "title": "Định tuyến",
@@ -2032,11 +2050,22 @@
   },
   "providersPage": {
     "subscriptions": {
-      "title": "Tài khoản đăng ký",
+      "title": "Tài khoản đã đăng nhập",
       "apiKeys": "Tích hợp khóa API",
       "breakdown": "{{subscriptions}} đăng ký · {{keys}} khóa API",
-      "manage": "Quản lý tài khoản đăng ký",
-      "error": "Không tải được số lượng đăng ký. Hãy làm mới để thử lại."
+      "manage": "Quản lý tài khoản",
+      "error": "Không tải được số lượng đăng ký. Hãy làm mới để thử lại.",
+      "viewQuota": "Hạn mức & đặt lại",
+      "actions": "Lối tắt tài khoản",
+      "none": "Chưa có tài khoản nào đăng nhập.",
+      "usable": "{{active}}/{{total}} có thể dùng ngay",
+      "state_active": "Sẵn sàng",
+      "state_limited": "Đã chạm giới hạn",
+      "state_attention": "Cần xử lý",
+      "state_disabled": "Đã tắt",
+      "nextAvailable": "Giới hạn sử dụng tự làm mới. Tài khoản kế tiếp dùng lại được {{relative}} · {{time}} ({{timezone}}).",
+      "limitedUnknownTime": "Giới hạn sử dụng tự làm mới; nhà cung cấp không cho biết thời điểm.",
+      "attentionHint": "Tài khoản cần xử lý: {{count}} (lỗi đăng nhập, kết nối hoặc dịch vụ). Xem chi tiết ở trang tệp xác thực."
     },
     "header": {
       "title": "AI Provider",
@@ -2476,12 +2505,12 @@
     "remaining": "Còn lại {{percent}}%"
   },
   "claude_reset": {
-    "expiry_title": "Hết hạn đặt lại thủ công ({{timezone}})",
+    "expiry_title": "Lượt đặt lại thủ công có thể dùng · hạn dùng ({{timezone}})",
     "grant_number": "Gói {{index}}",
     "expiry_unknown": "Chưa rõ thời gian hết hạn",
     "retry_confirm": "Thử lại lượt đặt lại chưa rõ kết quả cho “{{name}}” với ID yêu cầu ban đầu? Một lượt đặt lại có thể đã được tiêu tốn. Hãy thử lại trong vòng 10 phút; không tải lại trang hoặc bắt đầu nhận ở tab khác.",
-    "remaining": "Lượt đặt lại còn lại",
-    "title": "Lượt đặt lại dự trữ",
+    "remaining": "Lượt đặt lại thủ công",
+    "title": "Dùng lượt đặt lại thủ công",
     "scope": "Sử dụng một quyền đặt lại có hạn để xóa chu kỳ sử dụng Claude đủ điều kiện. Chỉ xác nhận khi bạn muốn tiêu tốn một lượt đặt lại. Việc khôi phục chỉ giới hạn trong tab/phiên này; không tải lại hoặc dùng tab khác trong khi kết quả chưa rõ.",
     "loading": "Đang tải…",
     "read_error": "Không thể đọc quyền đặt lại. Chưa gửi yêu cầu nào.",
@@ -2497,9 +2526,9 @@
     "empty": "Không có quyền đặt lại dự trữ nào.",
     "count": "Còn {{left}} / {{total}} lượt đặt lại",
     "ends": "Hết hạn: {{date}}",
-    "use": "Đặt lại giới hạn",
-    "confirm": "Xác nhận đặt lại",
-    "confirm_text": "Tiêu tốn một lượt đặt lại để xóa giới hạn sử dụng đủ điều kiện cho “{{name}}”? Thao tác này sẽ dùng một quyền đặt lại có hạn.",
+    "use": "Dùng lượt đặt lại thủ công…",
+    "confirm": "Dùng lượt này",
+    "confirm_text": "Chọn lượt đặt lại thủ công sẽ dùng cho “{{name}}”. Mỗi lượt là một quyền riêng với hạn dùng riêng.",
     "reset": "Đã đặt lại giới hạn sử dụng.",
     "already_used": "Quyền này đã được sử dụng.",
     "not_limited": "Không đặt lại: tài khoản hiện không bị giới hạn.",
@@ -2522,7 +2551,24 @@
     "choose_grant": "Chọn lượt đặt lại",
     "no_grants": "Không có lượt đặt lại.",
     "grant_expiry": "Hết hạn: {{date}}",
-    "grant_unavailable": "Hiện không khả dụng."
+    "grant_unavailable": "Hiện không khả dụng.",
+    "effect": "Dùng một lượt sẽ xóa ngay các cửa sổ sử dụng được liệt kê. Chờ đợi không tốn gì: các giới hạn bên dưới tự làm mới.",
+    "clears": "Xóa: {{windows}}",
+    "window_five_hour": "Giới hạn 5 giờ",
+    "window_seven_day": "giới hạn hằng tuần",
+    "window_seven_day_overage_included": "giới hạn hằng tuần gồm mức dùng thêm",
+    "reason_ineligible": "Tài khoản này không đủ điều kiện đặt lại thủ công.",
+    "reason_unknown_grant": "Anthropic không còn liệt kê lượt này.",
+    "reason_paused": "Anthropic đã tạm dừng.",
+    "reason_not_usable": "Anthropic hiện không cho phép dùng.",
+    "reason_exhausted": "Đã dùng hết.",
+    "reason_not_limited": "Chỉ dùng được khi tài khoản đang chạm giới hạn.",
+    "reason_no_usage": "Chưa có gì để đặt lại.",
+    "reason_not_started": "Chưa có hiệu lực.",
+    "reason_expired_grant": "Đã hết hạn.",
+    "reason_cooldown": "Vừa dùng một lượt; hãy chờ hết thời gian chờ.",
+    "reason_pending_other": "Hãy xử lý yêu cầu chưa rõ kết quả trước.",
+    "reason_unknown": "Không rõ trạng thái; hãy làm mới và thử lại."
   },
   "siwc": {
     "title": "Liên kết SIWC",
@@ -2557,5 +2603,20 @@
     "error": "Liên kết thất bại. Hãy bắt đầu lại.",
     "unsupported": "Máy chủ này không hỗ trợ liên kết SIWC.",
     "expired": "Phiên liên kết đã hết hạn. Hãy bắt đầu lại."
+  },
+  "quota_reset": {
+    "bank_hint": "Giới hạn tự làm mới vào thời điểm đặt lại. Dùng lượt đặt lại thủ công chỉ xóa sớm hơn.",
+    "renewal_heading": "Tự làm mới, không cần đặt lại",
+    "renewal_unknown": "Nhà cung cấp không cho biết khi nào các giới hạn này làm mới.",
+    "window_exhausted": "đã dùng hết",
+    "effect_heading": "Khi dùng một lượt",
+    "codex_lead": "Dùng 1 trong {{count}} lượt đặt lại thủ công cho “{{name}}”?",
+    "codex_effect": "OpenAI áp dụng đặt lại ngay cho giới hạn Codex của tài khoản này; sau đó cổng sẽ xóa thời gian chờ của thông tin xác thực này.",
+    "which_heading": "Lượt đặt lại nào được dùng ({{timezone}})",
+    "codex_which": "OpenAI tự chọn; bảng điều khiển này không thể chỉ định lượt cụ thể. Các lượt hiện có:",
+    "manual_reset": "Đặt lại thủ công",
+    "expires_at": "hết hạn {{date}}",
+    "not_limited_caution": "Hiện không có giới hạn nào của tài khoản này bị dùng hết. Đặt lại lúc này có thể gần như không có tác dụng.",
+    "irreversible": "Lượt đặt lại đã dùng không thể hoàn lại."
   }
 }

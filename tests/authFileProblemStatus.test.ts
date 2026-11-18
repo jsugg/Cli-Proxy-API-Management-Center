@@ -37,8 +37,22 @@ describe('auth file problem status', () => {
   });
 
   test('detects warning messages, unavailable credentials, and error status', () => {
-    expect(isProblemAuthFile(authFile({ statusMessage: 'quota exhausted' }))).toBe(true);
+    expect(isProblemAuthFile(authFile({ statusMessage: 'unauthorized' }))).toBe(true);
     expect(isProblemAuthFile(authFile({ unavailable: true }))).toBe(true);
     expect(isProblemAuthFile(authFile({ status: 'error' }))).toBe(true);
+  });
+
+  test('an expected usage limit is not a problem and is never bulk-deleted as one', () => {
+    expect(isProblemAuthFile(authFile({ statusMessage: 'quota exhausted' }))).toBe(false);
+    expect(
+      isProblemAuthFile(
+        authFile({
+          unavailable: true,
+          status: 'error',
+          statusMessage:
+            '{"error":{"type":"usage_limit_reached","message":"The usage limit has been reached"}}',
+        })
+      )
+    ).toBe(false);
   });
 });

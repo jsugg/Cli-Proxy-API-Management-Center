@@ -1,4 +1,4 @@
-import { HISTORY_MAX_GAP_MS, orderHistorySamples } from './model';
+import { HISTORY_MAX_GAP_MS, orderHistorySamples, sameHistorySeries } from './model';
 import type { QuotaHistorySample } from './types';
 
 /** Preserve every real observation, breaking lines at gaps, resets and series boundaries. */
@@ -34,11 +34,13 @@ export function buildHistoryPlot(
       segment = null;
       continue;
     }
+    // Reset jitter is not a window change; see RESET_DRIFT_TOLERANCE_MS.
     const changed =
       previous !== null &&
       (crossedBoundary ||
-        previous.seriesId !== sample.seriesId ||
-        previous.resetAt !== sample.resetAt ||
+        (previous.resetAt !== null && sample.resetAt !== null
+          ? !sameHistorySeries(previous, sample)
+          : previous.seriesId !== sample.seriesId || previous.resetAt !== sample.resetAt) ||
         previous.periodSeconds !== sample.periodSeconds ||
         sample.usedPercent < (previous.usedPercent ?? 0));
     const missing =

@@ -15,7 +15,7 @@ export function QuotaHistoryPanel({
   entries: readonly QuotaFileEntry[];
   showEmails: boolean;
 }) {
-  const [rangeHours, setRangeHours] = useState(1);
+  const [rangeHours, setRangeHours] = useState(24);
   const { state, refresh, loadMore, connected } = useQuotaHistory(
     provider,
     rangeHours * 3600000,

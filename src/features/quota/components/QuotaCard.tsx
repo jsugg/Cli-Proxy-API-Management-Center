@@ -27,6 +27,9 @@ import { CodexCreditOverageRow } from '../providers/codex/CodexCreditOverageRow'
 import { useCodexCreditOverage } from '../providers/codex/useCodexCreditOverage';
 import bodyStyles from './QuotaBody.module.scss';
 import styles from './QuotaCard.module.scss';
+import { QuotaFreshness } from './QuotaFreshness';
+import { automaticRenewals } from '../reset/resetSemantics';
+import { useNow } from '@/hooks/useNow';
 
 /** Bind the quota-page styles to the shared rendering contract. */
 const quotaClasses = bindQuotaClasses(bodyStyles, 'QuotaBody.module.scss');
@@ -70,6 +73,7 @@ export function QuotaCard(props: QuotaCardProps) {
     onReset,
   } = props;
   const { t } = useTranslation();
+  const now = useNow();
   const adapter = QUOTA_ADAPTERS[entry.type];
   const file = entry.file;
   const retainedClaudeUsage =
@@ -106,6 +110,12 @@ export function QuotaCard(props: QuotaCardProps) {
     quota?.errorStatus,
     quota?.error || t('common.unknown_error')
   );
+  const claudeRenewals =
+    entry.type === 'claude' && status === 'success'
+      ? automaticRenewals((quota as ClaudeQuotaState).windows ?? [], now, (window) =>
+          window.labelKey ? t(window.labelKey) : window.label
+        )
+      : undefined;
   // Claude banked resets join the plan chip row; their expiry list follows it.
   const showClaudeReset = entry.type === 'claude' && status === 'success';
   const claudePlanItems = showClaudeReset ? (
@@ -241,6 +251,10 @@ export function QuotaCard(props: QuotaCardProps) {
 
       {status !== 'idle' && !glance && (
         <footer className={styles.actionRow}>
+          <QuotaFreshness
+            className={styles.freshness}
+            observedAt={(quota as { observedAt?: string } | undefined)?.observedAt}
+          />
           {entry.type === 'claude' && (
             <button
               type="button"
@@ -252,6 +266,7 @@ export function QuotaCard(props: QuotaCardProps) {
             >
               <IconRefreshCw size={13} className={claudeReset.busy ? styles.spinning : undefined} />
               {t(`claude_reset.${claudeReset.buttonLabel}`)}
+              {claudeReset.count ? ` (${claudeReset.count})` : ''}
             </button>
           )}
           {showReset && (
@@ -290,6 +305,8 @@ export function QuotaCard(props: QuotaCardProps) {
           pendingGrantId={claudeReset.pendingGrantId}
           message={claudeReset.message}
           name={displayName}
+          unavailableReason={claudeReset.unavailableReason}
+          renewals={claudeRenewals}
           onConfirm={() => void claudeReset.confirm()}
           onClose={claudeReset.closeDialog}
         />

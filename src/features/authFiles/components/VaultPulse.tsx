@@ -1,6 +1,7 @@
 import { useMemo, type CSSProperties } from 'react';
 import type { AuthFileItem } from '@/types';
 import { hasAuthFileStatusWarning } from '@/features/authFiles/constants';
+import { classifyAuthFileAvailability } from '@/features/authFiles/availability';
 import type { AuthFileStatusBarData } from '@/features/authFiles/hooks/useAuthFilesStatusBarCache';
 import styles from './VaultPulse.module.scss';
 
@@ -9,7 +10,7 @@ const MAX_BARS = 160;
 /** 级联入场总预算（与 useRevealGroup / ThroughputChart 同一 360ms 语汇）。 */
 const ENTRANCE_BUDGET_MS = 360;
 
-type PulseState = 'live' | 'idle' | 'warning' | 'problem';
+type PulseState = 'live' | 'idle' | 'limited' | 'warning' | 'problem';
 
 type PulseBar = {
   key: string;
@@ -25,6 +26,7 @@ export type VaultPulseProps = {
 const STATE_CLASS: Record<PulseState, string> = {
   live: styles.barLive,
   idle: styles.barIdle,
+  limited: styles.barLimited,
   warning: styles.barWarning,
   problem: styles.barProblem,
 };
@@ -44,7 +46,9 @@ export function VaultPulse({ files, statusBarCache }: VaultPulseProps) {
       files.slice(0, MAX_BARS).map((file) => {
         const disabled = file.disabled === true;
         let state: PulseState;
-        if (file.unavailable === true) {
+        if (classifyAuthFileAvailability(file).state === 'limited') {
+          state = 'limited';
+        } else if (file.unavailable === true) {
           state = 'problem';
         } else if (hasAuthFileStatusWarning(file)) {
           state = 'warning';

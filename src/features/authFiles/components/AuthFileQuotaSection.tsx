@@ -15,6 +15,8 @@ import { IconRefreshCw } from '@/components/ui/icons';
 import { bindQuotaClasses } from '@/features/quota/types';
 import { QUOTA_ADAPTERS, type QuotaCardState } from '@/features/quota/providers';
 import { hasClaudeUsageData } from '@/features/quota/providers/claude/data';
+import { QuotaFreshness } from '@/features/quota/components/QuotaFreshness';
+import { resetConfirmationMessage } from '@/features/quota/reset/confirmationMessage';
 import styles from './AuthFileQuota.module.scss';
 
 /** Bind the auth-file host's compact styles to the quota rendering contract. */
@@ -119,10 +121,11 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
 
     const resetQuota = adapter.resetQuota;
     if (!resetQuota) return;
+    const currentQuota = quota;
 
     showConfirmation({
       title: t('codex_quota.reset_confirm_title'),
-      message: t('codex_quota.reset_confirm_message', { name: file.name }),
+      message: resetConfirmationMessage(t, currentQuota, file.name),
       confirmText: t('codex_quota.reset_confirm_button'),
       variant: 'primary',
       onConfirm: async () => {
@@ -152,7 +155,7 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
     cacheKey,
     disableControls,
     file,
-    quota?.status,
+    quota,
     resettingQuota,
     showConfirmation,
     showNotification,
@@ -217,6 +220,10 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
       {retainedClaudeUsage && quota && <adapter.Body quota={quota} classes={compactQuotaClasses} />}
       {(showRefreshQuotaAction || resetQuotaAction) && (
         <div className={styles.quotaCardActions}>
+          <QuotaFreshness
+            className={styles.quotaFreshness}
+            observedAt={(quota as { observedAt?: string } | undefined)?.observedAt}
+          />
           {resetQuotaAction}
           {showRefreshQuotaAction && (
             <Button

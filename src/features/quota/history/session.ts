@@ -7,8 +7,10 @@ import type {
   QuotaHistorySample,
 } from './types';
 
-export const HISTORY_MAX_PAGES = 5;
+export const HISTORY_MAX_PAGES = 12;
+/** Floor for automatic refreshes; the collector's own poll interval is used when longer. */
 export const HISTORY_REFRESH_MS = 60_000;
+export const HISTORY_MAX_RANGE_MS = 7 * 86_400_000;
 
 export interface QuotaHistoryState {
   status: 'loading' | 'ready' | 'unsupported' | 'error';
@@ -21,6 +23,8 @@ export interface QuotaHistoryState {
   nextCursor: string | null;
   complete: boolean;
   capped: boolean;
+  /** The latest refresh failed; the samples shown are from the previous success. */
+  refreshFailed: boolean;
 }
 
 interface HistorySessionOptions {
@@ -42,6 +46,7 @@ export const initialHistoryState = (): QuotaHistoryState => ({
   nextCursor: null,
   complete: false,
   capped: false,
+  refreshFailed: false,
 });
 
 /** Own one connection/filter range. All pages share filters; disposal invalidates every response. */
@@ -55,7 +60,11 @@ export class QuotaHistorySession {
   private cursors = new Set<string>();
 
   constructor(private readonly options: HistorySessionOptions) {
-    if (!Number.isFinite(options.rangeMs) || options.rangeMs <= 0 || options.rangeMs > 86400000) {
+    if (
+      !Number.isFinite(options.rangeMs) ||
+      options.rangeMs <= 0 ||
+      options.rangeMs > HISTORY_MAX_RANGE_MS
+    ) {
       throw new Error('Invalid quota history range');
     }
   }
@@ -81,7 +90,11 @@ export class QuotaHistorySession {
     this.pending = true;
     this.abort = new AbortController();
     const targetPages = Math.max(1, this.state.pages);
-    this.publish({ ...initialHistoryState(), busy: true });
+    const previous = this.state.status === 'ready' ? this.state : null;
+    const previousQuery = this.query;
+    const previousCursors = new Set(this.cursors);
+    // Keep the last chart on screen while revalidating instead of flashing a loading state.
+    this.publish(previous ? { ...previous, busy: true } : { ...initialHistoryState(), busy: true });
     try {
       const capabilities = await this.options.client.capabilities(this.abort.signal);
       if (!this.current()) return;
@@ -109,7 +122,13 @@ export class QuotaHistorySession {
       }
       this.publish({ ...state, status: 'ready', busy: false });
     } catch (error) {
-      this.fail(error);
+      if (previous && !(error instanceof UnsupportedQuotaHistory)) {
+        this.query = previousQuery;
+        this.cursors = previousCursors;
+        this.publish({ ...previous, busy: false, refreshFailed: true });
+      } else {
+        this.fail(error);
+      }
     } finally {
       this.pending = false;
     }

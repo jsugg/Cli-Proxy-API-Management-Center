@@ -9,12 +9,16 @@ import type { QuotaFileEntry } from '../logic';
 import {
   analyzeQuotaHistory,
   buildHistoryTracks,
-  HISTORY_MAX_AGE_MS,
+  rankHistoryTracks,
+  selectHistoryTrack,
   type HistoryTrack,
+  type TrackOverview,
 } from './model';
 import { buildHistoryPlot } from './plot';
 import type { QuotaHistoryState } from './session';
 import styles from './QuotaHistoryView.module.scss';
+
+export const HISTORY_RANGE_HOURS = [6, 24, 72, 168] as const;
 
 export interface QuotaHistoryViewProps {
   state: QuotaHistoryState;
@@ -70,28 +74,10 @@ export function QuotaHistoryView({
     [entries, showEmails]
   );
   const tracks = useMemo(() => buildHistoryTracks(state.samples), [state.samples]);
-  const track =
-    tracks.find((item) => item.key === selectedKey) ??
-    tracks.find((item) => {
-      const latest = item.samples[item.samples.length - 1];
-      return (
-        latest?.state === 'ok' &&
-        typeof latest.usedPercent === 'number' &&
-        Number.isFinite(latest.usedPercent) &&
-        latest.usedPercent >= 0 &&
-        latest.usedPercent <= 100 &&
-        latest.observedAt <= now &&
-        now - latest.observedAt <= HISTORY_MAX_AGE_MS &&
-        typeof latest.resetAt === 'number' &&
-        Number.isFinite(latest.resetAt) &&
-        latest.resetAt > now &&
-        typeof latest.periodSeconds === 'number' &&
-        Number.isFinite(latest.periodSeconds) &&
-        latest.periodSeconds > 0 &&
-        !item.periodBoundaries.some((boundary) => boundary > latest.observedAt && boundary <= now)
-      );
-    }) ??
-    tracks[0];
+  const ranked = useMemo(() => rankHistoryTracks(tracks, now), [tracks, now]);
+  const unreadable = tracks.length - ranked.length;
+  const overview = selectHistoryTrack(ranked, selectedKey);
+  const track = overview?.track;
   const analysis = analyzeQuotaHistory(
     track?.samples ?? [],
     now,
@@ -107,9 +93,7 @@ export function QuotaHistoryView({
   );
   const forecast = collectorStale || collectorError ? null : analysis.projection;
   const plot = buildHistoryPlot(track?.samples ?? [], track?.periodBoundaries);
-  const latest = track?.samples[track.samples.length - 1];
-  const remaining =
-    latest?.state === 'ok' && latest.usedPercent !== null ? 100 - latest.usedPercent : null;
+  const remaining = overview?.latestRemaining ?? null;
   const end = Math.max(state.to, now, forecast?.endAt ?? 0);
   const duration = Math.max(1, end - state.from);
   const x = (time: number) => Math.min(100, Math.max(0, ((time - state.from) / duration) * 100));
@@ -121,6 +105,8 @@ export function QuotaHistoryView({
       hour: '2-digit',
       minute: '2-digit',
     });
+  const formatPercent = (value: number) =>
+    `${value.toLocaleString(i18n.language, { maximumFractionDigits: 1 })}%`;
   const limitLabel = (item: HistoryTrack) => {
     const claudeKeys: Record<string, string> = {
       'five-hour': 'five_hour',
@@ -163,9 +149,12 @@ export function QuotaHistoryView({
           <Select
             value={String(rangeHours)}
             onChange={(value) => onRangeChange(Number(value))}
-            options={[1, 6, 24].map((hours) => ({
+            options={HISTORY_RANGE_HOURS.map((hours) => ({
               value: String(hours),
-              label: t('quota_history.range', { hours }),
+              label:
+                hours > 24 && hours % 24 === 0
+                  ? t('quota_history.range_days', { count: hours / 24 })
+                  : t('quota_history.range', { hours }),
             }))}
             ariaLabel={t('quota_history.range_label')}
             size="sm"
@@ -182,7 +171,7 @@ export function QuotaHistoryView({
       </header>
       {!connected ? (
         <p role="status">{t('quota_history.disconnected')}</p>
-      ) : state.status === 'loading' ? (
+      ) : state.status === 'loading' && !state.samples.length ? (
         <p role="status" aria-busy="true">
           {t('quota_history.loading')}
         </p>
@@ -213,27 +202,37 @@ export function QuotaHistoryView({
               {t(state.capped ? 'quota_history.capped' : 'quota_history.partial')}
             </p>
           )}
+          {state.refreshFailed && (
+            <p role="status" className={styles.warning}>
+              {t('quota_history.refresh_failed', { time: formatTime(state.to) })}
+            </p>
+          )}
           {!track ? (
-            <p role="status">{t('quota_history.collecting')}</p>
+            <p role="status">
+              {t(tracks.length ? 'quota_history.no_readings' : 'quota_history.collecting')}
+            </p>
           ) : (
             <>
-              <Select
-                value={track.key}
-                onChange={setSelectedKey}
-                options={tracks.map((item) => ({ value: item.key, label: trackLabel(item) }))}
-                ariaLabel={t('quota_history.track_label')}
+              <HistoryOverview
+                items={ranked}
+                selectedKey={track.key}
+                onSelect={setSelectedKey}
+                label={trackLabel}
+                formatPercent={formatPercent}
               />
+              {unreadable > 0 && (
+                <p className={styles.note}>
+                  {t('quota_history.unreadable_limits', { count: unreadable })}
+                </p>
+              )}
+              <h3 className={styles.selectedTitle}>{trackLabel(track)}</h3>
               {track.credentialIdentity && (
                 <p className={styles.warning}>{t('quota_history.credential_identity')}</p>
               )}
               <dl className={styles.stats}>
                 <div>
                   <dt>{t('quota_history.remaining')}</dt>
-                  <dd>
-                    {remaining === null
-                      ? t('quota_pool.unknown')
-                      : `${remaining.toLocaleString(i18n.language, { maximumFractionDigits: 1 })}%`}
-                  </dd>
+                  <dd>{remaining === null ? t('quota_pool.unknown') : formatPercent(remaining)}</dd>
                 </div>
                 <div>
                   <dt>{t('quota_history.burn')}</dt>
@@ -255,6 +254,23 @@ export function QuotaHistoryView({
               <p role="status" className={styles.note}>
                 {t(`quota_history.reason_${reason}`)}
               </p>
+              {overview &&
+                overview.measurableCount > 1 &&
+                overview.minRemaining !== null &&
+                overview.maxRemaining !== null && (
+                  <p className={styles.note}>
+                    {overview.minRemaining === overview.maxRemaining
+                      ? t('quota_history.range_flat', {
+                          value: formatPercent(overview.minRemaining),
+                          count: overview.measurableCount,
+                        })
+                      : t('quota_history.range_span', {
+                          low: formatPercent(overview.minRemaining),
+                          high: formatPercent(overview.maxRemaining),
+                          count: overview.measurableCount,
+                        })}
+                  </p>
+                )}
               <p className={styles.note}>
                 {t('quota_history.evidence', {
                   count: analysis.sampleCount,
@@ -340,16 +356,19 @@ export function QuotaHistoryView({
                           vectorEffect="non-scaling-stroke"
                         />
                         {segment.map((sample) => (
-                          <circle
+                          // Zero-length round-capped lines stay circular under the stretched viewBox.
+                          <line
                             key={sample.observedAt}
-                            cx={x(sample.observedAt)}
-                            cy={y(sample.usedPercent)}
-                            r="0.1"
+                            x1={x(sample.observedAt)}
+                            x2={x(sample.observedAt)}
+                            y1={y(sample.usedPercent)}
+                            y2={y(sample.usedPercent)}
                             vectorEffect="non-scaling-stroke"
                             className={styles.dot}
+                            data-history-point=""
                           >
-                            <title>{`${formatTime(sample.observedAt)} · ${100 - (sample.usedPercent ?? 0)}%`}</title>
-                          </circle>
+                            <title>{`${formatTime(sample.observedAt)} · ${formatPercent(100 - (sample.usedPercent ?? 0))}`}</title>
+                          </line>
                         ))}
                       </g>
                     ))}
@@ -399,7 +418,7 @@ export function QuotaHistoryView({
                           <td>{formatTime(sample.observedAt)}</td>
                           <td>
                             {sample.state === 'ok' && sample.usedPercent !== null
-                              ? `${100 - sample.usedPercent}%`
+                              ? formatPercent(100 - sample.usedPercent)
                               : t('quota_pool.unknown')}
                           </td>
                           <td>
@@ -423,5 +442,59 @@ export function QuotaHistoryView({
         </>
       )}
     </section>
+  );
+}
+
+function HistoryOverview({
+  items,
+  selectedKey,
+  onSelect,
+  label,
+  formatPercent,
+}: {
+  items: readonly TrackOverview[];
+  selectedKey: string;
+  onSelect: (key: string) => void;
+  label: (track: HistoryTrack) => string;
+  formatPercent: (value: number) => string;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className={styles.overview} role="group" aria-label={t('quota_history.track_label')}>
+      {items.map((item) => {
+        const selected = item.track.key === selectedKey;
+        return (
+          <button
+            key={item.track.key}
+            type="button"
+            className={styles.overviewItem}
+            aria-pressed={selected}
+            onClick={() => onSelect(item.track.key)}
+          >
+            <span className={styles.overviewLabel}>{label(item.track)}</span>
+            <span className={styles.overviewValue}>
+              {item.latestRemaining === null
+                ? t('quota_pool.unknown')
+                : formatPercent(item.latestRemaining)}
+            </span>
+            <span className={styles.overviewMeter} aria-hidden="true">
+              <span style={{ width: `${item.latestRemaining ?? 0}%` }} />
+            </span>
+            <span className={styles.overviewMeta}>
+              {!item.fresh
+                ? t('quota_history.overview_stale')
+                : item.minRemaining !== null &&
+                    item.maxRemaining !== null &&
+                    item.maxRemaining > item.minRemaining
+                  ? t('quota_history.overview_moved', {
+                      low: formatPercent(item.minRemaining),
+                      high: formatPercent(item.maxRemaining),
+                    })
+                  : t('quota_history.overview_flat')}
+            </span>
+          </button>
+        );
+      })}
+    </div>
   );
 }

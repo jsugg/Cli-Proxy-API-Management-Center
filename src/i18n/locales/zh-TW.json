@@ -2,7 +2,7 @@
   "quota_history": {
     "now": "現在",
     "title": "額度觀測歷史",
-    "subtitle": "伺服器記錄，每分鐘更新，不在瀏覽器中查詢提供商。",
+    "subtitle": "由伺服器收集器記錄的讀數。瀏覽器不會探測提供者。",
     "range": "最近 {{hours}} 小時",
     "range_label": "歷史時間範圍",
     "refresh": "重新整理歷史",
@@ -32,7 +32,7 @@
     "evidence": "近期連續樣本：{{count}} 個，跨度 {{span}} 分鐘。最新資料距今 {{age}} 分鐘。最近60分鐘可用觀測：{{known}}/{{total}}。",
     "chart_description": "剩餘百分比隨時間變化。點和實線為實際觀測，虛線為恆定速率預測。陰影表示未知或缺失觀測，點狀標記表示新視窗或序列。",
     "gap": "未知或觀測缺口",
-    "change": "視窗或序列變化",
+    "change": "窗口重置",
     "recorded": "已記錄",
     "projected": "預測",
     "assumption": "假設近期速率保持不變，預測截至下次已報告的重置或一小時內，不假設額度補充。單位為每小時百分點，不是權杖或集區容量，也不代表統計信賴度。",
@@ -40,7 +40,16 @@
     "table_limit": "顯示已載入 {{total}} 筆中的最新 {{shown}} 筆。",
     "observed_at": "觀測時間",
     "reset": "報告的重置時間",
-    "load_more": "載入更多觀測"
+    "load_more": "載入更多觀測",
+    "range_days": "最近 {{count}} 天",
+    "refresh_failed": "無法重新整理歷史。顯示截至 {{time}} 的記錄。",
+    "no_readings": "收集器正在執行，但此時間範圍內尚無可用讀數。",
+    "unreadable_limits": "此範圍內無可用讀數的限額（已隱藏）：{{count}}。",
+    "range_flat": "此範圍內未記錄到變化：{{count}} 次讀數中剩餘均為 {{value}}。",
+    "range_span": "{{count}} 次讀數中記錄的剩餘在 {{low}} 到 {{high}} 之間。",
+    "overview_stale": "近期無讀數",
+    "overview_moved": "範圍內 {{low}}–{{high}}",
+    "overview_flat": "範圍內無變化"
   },
   "quota_pool": {
     "title": "各提供商剩餘額度",
@@ -494,7 +503,14 @@
     "quota_refresh_single": "重新整理配額",
     "quota_refresh_hint": "僅重新整理該驗證檔案的配額",
     "quota_refresh_success": "已重新整理「{{name}}」的配額",
-    "quota_refresh_failed": "重新整理「{{name}}」的配額失敗：{{message}}"
+    "quota_refresh_failed": "重新整理「{{name}}」的配額失敗：{{message}}",
+    "limit_reached": "已達到用量上限。",
+    "limit_available_again": "將在 {{relative}} 恢復 · {{time}}（{{timezone}}）。",
+    "limit_renews_automatically": "會自動恢復；提供者未回報具體時間。",
+    "problem_filter_limited": "已達上限",
+    "meta_available": "{{count}} 個可用",
+    "meta_limited": "{{count}} 個已達上限",
+    "meta_limited_until": "{{count}} 個已達上限 · 最早 {{time}}"
   },
   "antigravity_subscription": {
     "plan_unknown": "未知",
@@ -599,17 +615,16 @@
     "credit_balance_label": "Credit 餘額",
     "credit_unlimited": "無限額",
     "reset_credits_label": "主動重置次數",
-    "reset_credits_expiry_label": "主動重置過期時間（{{timezone}}）",
-    "reset_credit_number": "第 {{index}} 次",
+    "reset_credits_expiry_label": "可使用的手動重置 · 到期時間（{{timezone}}）",
+    "reset_credit_number": "手動重置 {{index}}",
     "reset_credits_expiry_failed": "主動重置過期時間取得失敗：{{message}}",
     "reset_credits_invalid_payload": "主動重置過期時間回應格式無效",
-    "reset_button": "重置配額",
-    "reset_confirm_title": "重置 Codex 配額",
+    "reset_button": "使用手動重置…",
+    "reset_confirm_title": "使用 Codex 手動重置",
     "reset_confirm_message": "將消耗 1 次主動重置次數來重置「{{name}}」的 Codex 配額。是否繼續？",
-    "reset_confirm_button": "確認重置",
+    "reset_confirm_button": "使用 1 次手動重置",
     "reset_not_confirmed": "尚未確認額度重置成功，請重新整理額度後再決定是否重試。",
     "reset_cooldown_failed": "額度已重置，但代理冷卻清除失敗。請在原連線的認證檔案頁面使用「清除冷卻」，不要再次消耗重置卡。",
-
     "reset_success": "已重置「{{name}}」的 Codex 配額",
     "reset_failed": "重置「{{name}}」的 Codex 配額失敗：{{message}}",
     "plan_plus": "Plus",
@@ -1750,7 +1765,9 @@
     "weekday_wed": "三",
     "weekday_thu": "四",
     "weekday_fri": "五",
-    "weekday_sat": "六"
+    "weekday_sat": "六",
+    "freshness": "更新於{{relative}}",
+    "freshness_stale": "最後更新於{{relative}}"
   },
   "routing": {
     "title": "路由編排",
@@ -2098,11 +2115,22 @@
   },
   "providersPage": {
     "subscriptions": {
-      "title": "訂閱帳戶",
+      "title": "已登入帳戶",
       "apiKeys": "API 金鑰整合",
       "breakdown": "{{subscriptions}} 個訂閱 · {{keys}} 個 API 金鑰",
-      "manage": "管理訂閱帳戶",
-      "error": "無法取得訂閱數量，請重新整理後再試。"
+      "manage": "管理帳戶",
+      "error": "無法取得訂閱數量，請重新整理後再試。",
+      "viewQuota": "配額與重置",
+      "actions": "帳戶捷徑",
+      "none": "尚未登入任何帳戶。",
+      "usable": "{{total}} 個中 {{active}} 個目前可用",
+      "state_active": "可用",
+      "state_limited": "已達上限",
+      "state_attention": "需處理",
+      "state_disabled": "已停用",
+      "nextAvailable": "用量上限會自動恢復。下一個帳戶將在 {{relative}} 恢復 · {{time}}（{{timezone}}）。",
+      "limitedUnknownTime": "用量上限會自動恢復；提供者未回報具體時間。",
+      "attentionHint": "需處理的帳戶：{{count}}（登入、連線或服務錯誤）。詳情見認證檔案頁。"
     },
     "behavior": {
       "title": "提供商專屬行為",
@@ -2492,12 +2520,12 @@
     }
   },
   "claude_reset": {
-    "expiry_title": "主動重置過期時間（{{timezone}}）",
+    "expiry_title": "可使用的手動重置 · 到期時間（{{timezone}}）",
     "grant_number": "第 {{index}} 批",
     "expiry_unknown": "到期時間未知",
     "retry_confirm": "使用原請求 ID 重試「{{name}}」結果未知的重置？可能已消耗一次重置。請在 10 分鐘內重試；請勿重新載入頁面或在其他分頁發起新請求。",
-    "remaining": "剩餘重置次數",
-    "title": "儲備重置次數",
+    "remaining": "手動重置",
+    "title": "使用手動重置",
     "scope": "使用有限的重置權益清除符合條件的 Claude 用量視窗。僅在確定要消耗一次重置時確認。復原僅限目前分頁和工作階段；結果未知時，請勿重新載入頁面或使用其他分頁。",
     "loading": "載入中…",
     "read_error": "無法讀取重置權益，未提交重置。",
@@ -2513,9 +2541,9 @@
     "empty": "沒有儲備重置權益。",
     "count": "剩餘 {{left}} / {{total}} 次重置",
     "ends": "到期：{{date}}",
-    "use": "重置額度",
-    "confirm": "確認重置",
-    "confirm_text": "確定消耗一次重置，清除「{{name}}」符合條件的用量限制？重置次數有限。",
+    "use": "使用手動重置…",
+    "confirm": "使用此重置",
+    "confirm_text": "請選擇要為「{{name}}」使用的手動重置。每一項都是獨立的權益，有各自的到期時間。",
     "reset": "已重置用量限制。",
     "already_used": "該權益已使用。",
     "not_limited": "未重置：帳戶目前未達到限制。",
@@ -2538,7 +2566,24 @@
     "choose_grant": "選擇重置券",
     "no_grants": "暫無重置券。",
     "grant_expiry": "到期時間：{{date}}",
-    "grant_unavailable": "目前無法使用。"
+    "grant_unavailable": "目前無法使用。",
+    "effect": "使用後會立即清除其列出的用量窗口。等待不消耗任何東西：下方限額會自動恢復。",
+    "clears": "清除：{{windows}}",
+    "window_five_hour": "5 小時限額",
+    "window_seven_day": "每週限額",
+    "window_seven_day_overage_included": "含額外用量的每週限額",
+    "reason_ineligible": "此帳戶不符合手動重置條件。",
+    "reason_unknown_grant": "Anthropic 已不再列出此重置。",
+    "reason_paused": "已被 Anthropic 暫停。",
+    "reason_not_usable": "Anthropic 目前不允許使用。",
+    "reason_exhausted": "已用完。",
+    "reason_not_limited": "僅在此帳戶達到上限時可用。",
+    "reason_no_usage": "目前沒有可重置的用量。",
+    "reason_not_started": "尚未生效。",
+    "reason_expired_grant": "已過期。",
+    "reason_cooldown": "最近已使用過重置；請等待冷卻結束。",
+    "reason_pending_other": "請先處理結果未知的申領。",
+    "reason_unknown": "狀態未知；請重新整理後重試。"
   },
   "siwc": {
     "title": "綁定 SIWC",
@@ -2573,5 +2618,20 @@
     "error": "綁定失敗，請重新開始。",
     "unsupported": "目前後端不支援 SIWC 綁定。",
     "expired": "綁定工作階段已過期，請重新開始。"
+  },
+  "quota_reset": {
+    "bank_hint": "限額會在各自的重置時間自動恢復。使用手動重置只是提前清除。",
+    "renewal_heading": "自動恢復，無需重置",
+    "renewal_unknown": "提供者未回報這些限額的恢復時間。",
+    "window_exhausted": "已用盡",
+    "effect_heading": "使用後會發生什麼",
+    "codex_lead": "要為「{{name}}」使用 {{count}} 次手動重置中的 1 次嗎？",
+    "codex_effect": "OpenAI 會立即對該帳戶的 Codex 用量限額執行重置；隨後閘道會清除此憑證的冷卻。",
+    "which_heading": "使用哪一次手動重置（{{timezone}}）",
+    "codex_which": "由 OpenAI 選擇；此面板無法指定具體哪一次。可用的手動重置：",
+    "manual_reset": "手動重置",
+    "expires_at": "{{date}} 到期",
+    "not_limited_caution": "該帳戶目前沒有任何限額已用盡。現在使用重置可能幾乎沒有效益。",
+    "irreversible": "已使用的重置無法退回。"
   }
 }

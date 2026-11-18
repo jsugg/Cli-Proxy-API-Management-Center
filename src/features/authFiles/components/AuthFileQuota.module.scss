@@ -62,7 +62,16 @@ button.quotaMessageAction {
 .quotaCardActions {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
+}
+
+.quotaFreshness {
+  margin-right: auto;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
 }
 
 .quotaResetCreditButton {

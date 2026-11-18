@@ -60,8 +60,12 @@ import {
   type AuthFilesSortMode,
 } from '@/features/authFiles/uiState';
 import { QUOTA_ADAPTERS } from '@/features/quota/providers';
+import { classifyQuotaFiles } from '@/features/quota/logic';
+import { useQuotaBatchLoader } from '@/features/quota/hooks/useQuotaBatchLoader';
+import { useQuotaAutoRevalidate } from '@/features/quota/hooks/useQuotaAutoRevalidate';
 import type { QuotaStore } from '@/features/quota/providers/types';
 import { useAuthStore, useNotificationStore, useQuotaStore, useThemeStore } from '@/stores';
+import { classifyAuthFileAvailability, summarizeAvailability } from './availability';
 import styles from './AuthFilesPage.module.scss';
 
 const DEFAULT_REGULAR_PAGE_SIZE = 9;
@@ -201,6 +205,7 @@ export function AuthFilesPage() {
   const problemOnly = statusFilterMode === 'problem';
   const disabledOnly = statusFilterMode === 'disabled';
   const enabledOnly = statusFilterMode === 'enabled';
+  const limitedOnly = statusFilterMode === 'limited';
 
   /* ---------- uiState 水合与持久化（localStorage key/形状与旧版完全一致） ---------- */
 
@@ -406,9 +411,10 @@ export function AuthFilesPage() {
         if (enabledOnly && file.disabled === true) return false;
         if (disabledOnly && file.disabled !== true) return false;
         if (problemOnly && !isProblemAuthFile(file)) return false;
+        if (limitedOnly && classifyAuthFileAvailability(file).state !== 'limited') return false;
         return true;
       }),
-    [disabledOnly, enabledOnly, files, problemOnly]
+    [disabledOnly, enabledOnly, files, limitedOnly, problemOnly]
   );
 
   const statusFilterOptions = useMemo(
@@ -416,6 +422,7 @@ export function AuthFilesPage() {
       [
         { value: 'all', label: t('auth_files.problem_filter_all') },
         { value: 'enabled', label: t('auth_files.problem_filter_enabled') },
+        { value: 'limited', label: t('auth_files.problem_filter_limited') },
         { value: 'disabled', label: t('auth_files.problem_filter_disabled') },
         { value: 'problem', label: t('auth_files.problem_filter_problem') },
       ] satisfies Array<{ value: AuthFilesStatusFilterMode; label: string }>,
@@ -464,6 +471,17 @@ export function AuthFilesPage() {
     () => pageItems.filter((file) => !isRuntimeOnlyAuthFile(file)),
     [pageItems]
   );
+  // Visible cards show cached quota immediately; stale or missing readings refresh in the background.
+  const visibleQuotaEntries = useMemo(
+    () => (compactMode ? [] : classifyQuotaFiles(selectablePageItems)),
+    [compactMode, selectablePageItems]
+  );
+  const { batchLoading: quotaBatchLoading, loadQuota } = useQuotaBatchLoader();
+  useQuotaAutoRevalidate(
+    visibleQuotaEntries,
+    disableControls || loading || quotaBatchLoading || !isCurrentLayer,
+    loadQuota
+  );
   const selectableFilteredItems = useMemo(
     () => sorted.filter((file) => !isRuntimeOnlyAuthFile(file)),
     [sorted]
@@ -485,8 +503,7 @@ export function AuthFilesPage() {
 
   /* ---------- 头部遥测计数 ---------- */
 
-  const activeCount = useMemo(() => files.filter((file) => file.disabled !== true).length, [files]);
-  const problemCount = useMemo(() => files.filter(isProblemAuthFile).length, [files]);
+  const availability = useMemo(() => summarizeAvailability(files), [files]);
 
   /* ---------- 首屏卡片一次性级联入场 ----------
    * 首批数据渲染后立即翻转 cardsAnimated；已挂载的卡片在挂载时捕获过
@@ -610,8 +627,10 @@ export function AuthFilesPage() {
         onSyncModelCatalog={() => void syncModelCatalog()}
         modelCatalogSyncDisabled={connectionStatus !== 'connected'}
         totalCount={files.length}
-        activeCount={activeCount}
-        problemCount={problemCount}
+        activeCount={availability.available}
+        limitedCount={availability.limited}
+        nextAvailableAt={availability.nextAvailableAt}
+        problemCount={availability.attention}
         loading={loading}
         refreshing={refreshing}
         uploading={uploading}
@@ -664,9 +683,13 @@ export function AuthFilesPage() {
           layout={layout}
           onLayoutChange={setLayout}
           deleteLabel={deleteAllButtonLabel}
-          deleteDisabled={disableControls || loading || deletingAll || files.length === 0}
+          // Limited credentials recover on their own; never offer them as a bulk-deletion set.
+          deleteDisabled={
+            limitedOnly || disableControls || loading || deletingAll || files.length === 0
+          }
           deleteLoading={deletingAll}
           onDelete={() =>
+            !limitedOnly &&
             handleDeleteAll({
               filter,
               problemOnly,

@@ -10,7 +10,10 @@ import {
 } from './session';
 import type { HistoryProvider } from './types';
 
-/** Read companion observations automatically; never issue provider probes from the browser. */
+/**
+ * Read companion observations automatically; never issue provider probes from the browser.
+ * Refreshes pause while the tab is hidden and resume, once, when it becomes visible.
+ */
 export function useQuotaHistory(
   provider: HistoryProvider | undefined,
   rangeMs: number,
@@ -50,13 +53,35 @@ export function useQuotaHistory(
     const unsubscribe = session.subscribe(() =>
       setSnapshot({ owner, state: session.getSnapshot() })
     );
-    void session.refresh();
-    const timer = window.setInterval(() => {
-      void session.refresh();
-    }, HISTORY_REFRESH_MS);
+    // Refresh no faster than the collector records, and never while the tab is hidden.
+    let timer: number | undefined;
+    const schedule = () => {
+      window.clearTimeout(timer);
+      if (!mounted || document.visibilityState !== 'visible') return;
+      const pollMs = (session.getSnapshot().capabilities?.pollIntervalSeconds ?? 0) * 1000;
+      timer = window.setTimeout(
+        () => {
+          void session.refresh().finally(schedule);
+        },
+        Math.max(HISTORY_REFRESH_MS, pollMs)
+      );
+    };
+    const onVisibility = () => {
+      if (!mounted) return;
+      if (document.visibilityState !== 'visible') {
+        window.clearTimeout(timer);
+        return;
+      }
+      const lastTo = session.getSnapshot().to;
+      if (!lastTo || Date.now() - lastTo >= HISTORY_REFRESH_MS) void session.refresh();
+      schedule();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    void session.refresh().finally(schedule);
     return () => {
       mounted = false;
-      window.clearInterval(timer);
+      window.clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisibility);
       unsubscribe();
       session.dispose();
       sessionRef.current = null;

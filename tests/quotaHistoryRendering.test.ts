@@ -1,14 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { readFileSync } from 'node:fs';
-import ts from 'typescript';
 import i18n from '../src/i18n';
 import { QuotaHistoryView } from '../src/features/quota/history/QuotaHistoryView';
 import { buildHistoryPlot } from '../src/features/quota/history/plot';
 import {
   buildHistoryTracks,
   HISTORY_MAX_AGE_MS,
+  rankHistoryTracks,
+  selectHistoryTrack,
   type HistoryTrack,
 } from '../src/features/quota/history/model';
 import { initialHistoryState } from '../src/features/quota/history/session';
@@ -78,20 +78,7 @@ const orphan = {
 };
 
 function selectTrack(tracks: HistoryTrack[], selectedKey = ''): HistoryTrack | undefined {
-  const source = readFileSync('src/features/quota/history/QuotaHistoryView.tsx', 'utf8');
-  const block = source.slice(
-    source.indexOf('  const track ='),
-    source.indexOf('  const analysis =')
-  );
-  const js = ts.transpileModule(`${block}\nreturn track;`, {
-    compilerOptions: { target: ts.ScriptTarget.ES2022 },
-  }).outputText;
-  return new Function('tracks', 'selectedKey', 'now', 'HISTORY_MAX_AGE_MS', js)(
-    tracks,
-    selectedKey,
-    now,
-    HISTORY_MAX_AGE_MS
-  ) as HistoryTrack | undefined;
+  return selectHistoryTrack(rankHistoryTracks(tracks, now), selectedKey)?.track;
 }
 
 describe('recorded history chart', () => {
@@ -104,10 +91,13 @@ describe('recorded history chart', () => {
     expect(markup).toContain('70%');
   });
 
-  test('preserves explicit unknown and stale selections, with first-track fallback when all unknown', () => {
+  test('preserves explicit stale selections; tracks without any reading are never charted', () => {
     const tracks = buildHistoryTracks([orphan, ...samples]);
+    const measured = tracks.find((track) => track.accountId === 'opaque-a');
     expect(selectTrack(tracks)?.accountId).toBe('opaque-a');
-    expect(selectTrack(tracks, tracks[0].key)).toBe(tracks[0]);
+    // An unknown-only track has nothing to draw, so an explicit pick falls back.
+    expect(selectTrack(tracks, tracks[0].key)).toBe(measured);
+    expect(selectTrack(buildHistoryTracks([orphan]))).toBeUndefined();
     const stale = buildHistoryTracks(
       samples.map((sample) => ({
         ...sample,
@@ -116,7 +106,7 @@ describe('recorded history chart', () => {
       }))
     );
     expect(selectTrack([...stale, ...tracks], stale[0].key)).toBe(stale[0]);
-    expect(selectTrack([tracks[0]])).toBe(tracks[0]);
+    expect(selectTrack([...stale, ...tracks])).toBe(measured);
   });
 
   test('default eligibility excludes expired, future, stale, missing and invalid readings', () => {
@@ -187,7 +177,7 @@ describe('recorded history chart', () => {
     expect(markup).toContain('constant');
     expect(markup).not.toContain('alice@example.test');
     expect(markup).toContain('al…e@example.test');
-    expect(render({ ...ready, samples: [samples[0]] })).toContain('<circle');
+    expect(render({ ...ready, samples: [samples[0]] })).toContain('data-history-point');
     expect(render({ ...ready, samples: [samples[0]] })).not.toContain('data-history-projected');
   });
 

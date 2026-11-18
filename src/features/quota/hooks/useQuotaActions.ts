@@ -19,6 +19,7 @@ import {
   type QuotaLabelResolver,
 } from '@/utils/quota/identity';
 import { enrichQuotaInBackground } from '../quotaEnrichment';
+import { resetConfirmationMessage } from '../reset/confirmationMessage';
 import { getQuotaMap, getQuotaSetter, type QuotaAdapter, type QuotaCardState } from '../providers';
 
 const getQuotaState = (adapter: QuotaAdapter, file: AuthFileItem): QuotaCardState | undefined =>
@@ -88,10 +89,11 @@ export function useQuotaActions(
       const cacheKey = getQuotaCacheKey(file);
       if (getQuotaState(adapter, file)?.status === 'loading') return;
       if (resettingQuotaName === cacheKey) return;
+      const currentQuota = getQuotaState(adapter, file);
 
       showConfirmation({
         title: t('codex_quota.reset_confirm_title'),
-        message: t('codex_quota.reset_confirm_message', { name: labelForFile(file) }),
+        message: resetConfirmationMessage(t, currentQuota, labelForFile(file)),
         confirmText: t('codex_quota.reset_confirm_button'),
         variant: 'primary',
         onConfirm: async () => {

@@ -34,8 +34,11 @@ export function useQuotaBatchLoader() {
   const requestIdRef = useRef(0);
 
   const loadQuota = useCallback(
-    async (targets: QuotaFileEntry[]) => {
+    async (targets: QuotaFileEntry[], options: { background?: boolean } = {}) => {
       if (loadingRef.current) return;
+      // Background revalidation keeps a usable cached reading on screen until a newer one lands.
+      const keepCached = (state: QuotaCardState | undefined) =>
+        options.background === true && state?.status === 'success';
       if (targets.length === 0) return;
       loadingRef.current = true;
       const requestId = ++requestIdRef.current;
@@ -59,7 +62,8 @@ export function useQuotaBatchLoader() {
               setQuota((prev) => {
                 const nextState = { ...prev };
                 entries.forEach(({ file }) => {
-                  nextState[getQuotaCacheKey(file)] = adapter.buildLoadingState();
+                  const key = getQuotaCacheKey(file);
+                  if (!keepCached(prev[key])) nextState[key] = adapter.buildLoadingState();
                 });
                 return nextState;
               });
@@ -93,6 +97,8 @@ export function useQuotaBatchLoader() {
                 commitIfQuotaCacheCurrent(
                   cacheGeneration,
                   () => {
+                    // A failed background read must not replace a valid cached reading.
+                    if (result.status === 'error' && keepCached(prev[result.cacheKey])) return;
                     nextState[result.cacheKey] =
                       result.status === 'success'
                         ? adapter.buildSuccessState(result.data)

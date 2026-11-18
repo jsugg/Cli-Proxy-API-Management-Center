@@ -15,6 +15,7 @@ const MODES = [
   'stale',
   'gaps',
   'flat',
+  'drift',
   'failure',
 ] as const;
 type PreviewMode = (typeof MODES)[number];
@@ -57,6 +58,13 @@ function fixture(mode: PreviewMode, rangeHours: number): QuotaHistoryState {
     )
   );
   if (mode === 'first') samples = [sample(0, 20, 'claude')];
+  // Live collector shape: each poll re-derives the reset a few ms apart, with a new series id.
+  if (mode === 'drift')
+    samples = samples.map((row, index) => ({
+      ...row,
+      seriesId: `${row.seriesId}-${index}`,
+      resetAt: (row.resetAt ?? to) + (index % 7),
+    }));
   if (mode === 'gaps')
     samples = samples.map((row, index) =>
       index === 6
@@ -104,7 +112,7 @@ function fixture(mode: PreviewMode, rangeHours: number): QuotaHistoryState {
 /** Development-only real components with synthetic observations and no backend calls. */
 export function QuotaHistoryPreview({ showEmails }: { showEmails: boolean }) {
   const [mode, setMode] = useState<PreviewMode>('ready');
-  const [rangeHours, setRangeHours] = useState(1);
+  const [rangeHours, setRangeHours] = useState(24);
   const [revision, setRevision] = useState(0);
   const state = useMemo(() => {
     void revision;

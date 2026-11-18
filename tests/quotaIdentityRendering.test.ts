@@ -137,6 +137,11 @@ describe('consistent quota account labels', () => {
       commitIfQuotaCacheCurrent: (_generation: number, commit: () => void) => commit(),
       getQuotaSetter: () => () => undefined,
       setResettingQuotaName: () => undefined,
+      resetConfirmationMessage: (
+        translate: (key: string, params: { name: string }) => string,
+        _quota: unknown,
+        name: string
+      ) => translate('codex_quota.reset_confirm_message', { name }),
     };
     const js = ts.transpileModule(`${block}\nreturn resetQuota;`, {
       compilerOptions: { target: ts.ScriptTarget.ES2022 },
@@ -313,6 +318,11 @@ describe('consistent quota account labels', () => {
       commitIfQuotaCacheCurrent: (_generation: number, commit: () => void) => commit(),
       getQuotaSetter: () => () => undefined,
       setResettingQuotaName: () => undefined,
+      resetConfirmationMessage: (
+        translate: (key: string, params: { name: string }) => string,
+        _quota: unknown,
+        name: string
+      ) => translate('codex_quota.reset_confirm_message', { name }),
     };
     const js = ts.transpileModule(`${block}\nreturn resetQuota;`, {
       compilerOptions: { target: ts.ScriptTarget.ES2022 },

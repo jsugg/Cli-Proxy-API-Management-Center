@@ -20,7 +20,7 @@ describe('provider subscription counts', () => {
     const groups = buildProviderGroups({}, files);
     for (const brand of ['claude', 'codex']) {
       const group = groups.find((item) => item.id === brand);
-      expect(group?.subscriptions).toEqual({ total: 3, active: 3 });
+      expect(group?.subscriptions).toMatchObject({ total: 3, active: 3 });
       expect(group?.resources).toEqual([]);
     }
     expect(groups.find((item) => item.id === 'openaiCompatibility')?.subscriptions).toBeUndefined();
@@ -33,9 +33,12 @@ describe('provider subscription counts', () => {
       account('cooling', 'codex', { unavailable: true }),
       account('error', 'codex', { status: 'error' }),
     ]);
-    expect(groups.find((item) => item.id === 'codex')?.subscriptions).toEqual({
+    expect(groups.find((item) => item.id === 'codex')?.subscriptions).toMatchObject({
       total: 4,
       active: 1,
+      disabled: 1,
+      attention: 2,
+      limited: 0,
     });
   });
 
@@ -47,11 +50,11 @@ describe('provider subscription counts', () => {
       account('other', 'vertex'),
     ];
     const groups = buildProviderGroups({}, files);
-    expect(groups.find((item) => item.id === 'claude')?.subscriptions).toEqual({
+    expect(groups.find((item) => item.id === 'claude')?.subscriptions).toMatchObject({
       total: 0,
       active: 0,
     });
-    expect(groups.find((item) => item.id === 'codex')?.subscriptions).toEqual({
+    expect(groups.find((item) => item.id === 'codex')?.subscriptions).toMatchObject({
       total: 0,
       active: 0,
     });
@@ -62,7 +65,7 @@ describe('provider subscription counts', () => {
     const group = buildProviderGroups({ codexApiKeys: [{ apiKey: 'fixture-key' }] }, [
       account('subscription', 'codex'),
     ]).find((item) => item.id === 'codex');
-    expect(group?.subscriptions).toEqual({ total: 1, active: 1 });
+    expect(group?.subscriptions).toMatchObject({ total: 1, active: 1 });
     expect(group?.resources).toHaveLength(1);
     expect(group?.resources[0].apiKey).toBe('fixture-key');
   });
@@ -75,11 +78,11 @@ describe('provider subscription counts', () => {
       ],
     });
     const groups = buildProviderGroups({}, files);
-    expect(groups.find((item) => item.id === 'claude')?.subscriptions).toEqual({
+    expect(groups.find((item) => item.id === 'claude')?.subscriptions).toMatchObject({
       total: 0,
       active: 0,
     });
-    expect(groups.find((item) => item.id === 'codex')?.subscriptions).toEqual({
+    expect(groups.find((item) => item.id === 'codex')?.subscriptions).toMatchObject({
       total: 1,
       active: 1,
     });
@@ -104,7 +107,40 @@ describe('provider subscription counts', () => {
     for (const order of [files, [...files].reverse()]) {
       expect(
         buildProviderGroups({}, order).find((group) => group.id === 'claude')?.subscriptions
-      ).toEqual({ total: 12, active: 1 });
+      ).toMatchObject({ total: 12, active: 1, disabled: 8, attention: 3, limited: 0 });
     }
+  });
+
+  test('separates expected usage limits from failures and reports the earliest recovery', () => {
+    const now = Date.now();
+    const soon = new Date(now + 30 * 60_000).toISOString();
+    const later = new Date(now + 3 * 3600_000).toISOString();
+    const limitBody = (resetsAt: number) =>
+      JSON.stringify({ error: { type: 'usage_limit_reached', resets_at: resetsAt } });
+    const groups = buildProviderGroups({}, [
+      account('ok', 'codex'),
+      account('limited-soon', 'codex', {
+        unavailable: true,
+        status: 'error',
+        statusMessage: limitBody(Math.floor(Date.parse(later) / 1000)),
+        next_retry_after: soon,
+      }),
+      account('limited-later', 'codex', {
+        unavailable: true,
+        status: 'error',
+        statusMessage: limitBody(Math.floor(Date.parse(later) / 1000)),
+      }),
+      account('signed-out', 'codex', { status: 'error', statusMessage: 'unauthorized' }),
+    ]);
+    const summary = groups.find((item) => item.id === 'codex')?.subscriptions;
+    expect(summary).toMatchObject({ total: 4, active: 1, limited: 2, attention: 1, disabled: 0 });
+    expect(summary?.nextAvailableAt).toBe(Date.parse(soon));
+  });
+
+  test('summarizes signed-in accounts for other providers that use the Auth Files page', () => {
+    const groups = buildProviderGroups({}, [account('gem', 'gemini'), account('grok', 'xai')]);
+    expect(groups.find((item) => item.id === 'gemini')?.subscriptions).toMatchObject({ total: 1 });
+    expect(groups.find((item) => item.id === 'xai')?.subscriptions).toMatchObject({ total: 1 });
+    expect(groups.find((item) => item.id === 'vertex')?.subscriptions).toBeUndefined();
   });
 });

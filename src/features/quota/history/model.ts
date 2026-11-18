@@ -4,6 +4,30 @@ const MINUTE_MS = 60_000;
 export const HISTORY_LOOKBACK_MS = 60 * MINUTE_MS;
 export const HISTORY_MAX_GAP_MS = 15 * MINUTE_MS;
 export const HISTORY_MAX_AGE_MS = 10 * MINUTE_MS;
+/**
+ * Providers re-derive the same reset boundary on every poll: Claude jitters by
+ * milliseconds and Codex by a second. Boundaries this close are one window; a real
+ * renewal moves the boundary by a whole period.
+ */
+export const RESET_DRIFT_TOLERANCE_MS = MINUTE_MS;
+
+/** Same reset boundary, allowing for provider-side jitter. Unknown never matches. */
+export function sameResetWindow(a: number | null, b: number | null): boolean {
+  return a !== null && b !== null && Math.abs(a - b) <= RESET_DRIFT_TOLERANCE_MS;
+}
+
+/**
+ * The collector's series_id hashes plan, period and the exact reset instant. A new
+ * id with a jittered reset is the same window; a new id with an identical reset is a
+ * genuine change (such as the plan) and still breaks continuity.
+ */
+export function sameHistorySeries(
+  a: Pick<QuotaHistorySample, 'seriesId' | 'resetAt'>,
+  b: Pick<QuotaHistorySample, 'seriesId' | 'resetAt'>
+): boolean {
+  if (!sameResetWindow(a.resetAt, b.resetAt)) return false;
+  return a.seriesId === b.seriesId || a.resetAt !== b.resetAt;
+}
 
 export interface HistoryTrack {
   key: string;
@@ -209,12 +233,11 @@ export function analyzeQuotaHistory(
     if (
       !measurable(previous) ||
       previous.observedAt < boundary ||
-      previous.seriesId !== latest.seriesId ||
       previous.periodSeconds !== latest.periodSeconds ||
       previous.provider !== latest.provider ||
       previous.accountId !== latest.accountId ||
       previous.limitId !== latest.limitId ||
-      previous.resetAt !== latest.resetAt ||
+      !sameHistorySeries(previous, latest) ||
       next.observedAt - previous.observedAt > HISTORY_MAX_GAP_MS ||
       next.usedPercent < previous.usedPercent
     )
@@ -243,4 +266,79 @@ export function analyzeQuotaHistory(
       remainingAtEnd: Math.max(0, remaining - (rate * (endAt - latest.observedAt)) / 3_600_000),
     },
   };
+}
+
+export interface TrackOverview {
+  track: HistoryTrack;
+  /** Readings with a usable percentage in the loaded range. */
+  measurableCount: number;
+  latestRemaining: number | null;
+  latestObservedAt: number | null;
+  minRemaining: number | null;
+  maxRemaining: number | null;
+  /** Latest reading is recent enough to describe the present. */
+  fresh: boolean;
+}
+
+function remainingOf(sample: QuotaHistorySample): number | null {
+  return sample.state === 'ok' &&
+    typeof sample.usedPercent === 'number' &&
+    Number.isFinite(sample.usedPercent) &&
+    sample.usedPercent >= 0 &&
+    sample.usedPercent <= 100
+    ? 100 - sample.usedPercent
+    : null;
+}
+
+export function overviewTrack(track: HistoryTrack, now: number): TrackOverview {
+  let measurableCount = 0;
+  let minRemaining: number | null = null;
+  let maxRemaining: number | null = null;
+  let latest: QuotaHistorySample | null = null;
+  for (const sample of track.samples) {
+    const remaining = remainingOf(sample);
+    if (remaining === null || sample.observedAt > now) continue;
+    measurableCount += 1;
+    latest = sample;
+    minRemaining = minRemaining === null ? remaining : Math.min(minRemaining, remaining);
+    maxRemaining = maxRemaining === null ? remaining : Math.max(maxRemaining, remaining);
+  }
+  return {
+    track,
+    measurableCount,
+    latestRemaining: latest ? remainingOf(latest) : null,
+    latestObservedAt: latest?.observedAt ?? null,
+    minRemaining,
+    maxRemaining,
+    fresh: latest !== null && now - latest.observedAt <= HISTORY_MAX_AGE_MS,
+  };
+}
+
+/**
+ * Tracks worth charting first: fresh ones that actually moved in the range, then
+ * the scarcest remaining allowance. Tracks with no usable reading are left out.
+ */
+export function rankHistoryTracks(tracks: readonly HistoryTrack[], now: number): TrackOverview[] {
+  const moved = (item: TrackOverview) =>
+    item.minRemaining !== null &&
+    item.maxRemaining !== null &&
+    item.maxRemaining > item.minRemaining;
+  return tracks
+    .map((track) => overviewTrack(track, now))
+    .filter((item) => item.measurableCount > 0)
+    .sort(
+      (a, b) =>
+        Number(b.fresh) - Number(a.fresh) ||
+        Number(moved(b)) - Number(moved(a)) ||
+        (a.latestRemaining ?? 101) - (b.latestRemaining ?? 101) ||
+        a.track.key.localeCompare(b.track.key)
+    );
+}
+
+/** Explicit choice when it still has readings, otherwise the highest-ranked track. */
+export function selectHistoryTrack(
+  ranked: readonly TrackOverview[],
+  selectedKey: string
+): TrackOverview | undefined {
+  return ranked.find((item) => item.track.key === selectedKey) ?? ranked[0];
 }

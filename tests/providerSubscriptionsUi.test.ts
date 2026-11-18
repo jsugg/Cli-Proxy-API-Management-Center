@@ -78,10 +78,9 @@ describe('provider subscription presentation', () => {
       )
     );
     expect(markup).toContain(i18n.t('providersPage.subscriptions.title'));
-    expect(markup).toContain(
-      i18n.t('providersPage.categories.activeCount', { active: 3, total: 3 })
-    );
+    expect(markup).toContain(i18n.t('providersPage.subscriptions.usable', { active: 3, total: 3 }));
     expect(markup).toContain('href="/auth-files"');
+    expect(markup).toContain('href="/quota"');
     expect(markup).not.toContain('<button');
   });
 
@@ -101,16 +100,71 @@ describe('provider subscription presentation', () => {
         readFileSync(new URL(`../src/i18n/locales/${locale}.json`, import.meta.url), 'utf8')
       );
       const labels = messages.providersPage.subscriptions;
-      expect(Object.keys(labels).sort()).toEqual([
-        'apiKeys',
-        'breakdown',
-        'error',
-        'manage',
-        'title',
-      ]);
+      expect(Object.keys(labels).sort()).toEqual(
+        [
+          'actions',
+          'apiKeys',
+          'attentionHint',
+          'breakdown',
+          'error',
+          'limitedUnknownTime',
+          'manage',
+          'nextAvailable',
+          'none',
+          'state_active',
+          'state_attention',
+          'state_disabled',
+          'state_limited',
+          'title',
+          'usable',
+          'viewQuota',
+        ].sort()
+      );
       expect(labels.breakdown).toContain('{{subscriptions}}');
       expect(labels.breakdown).toContain('{{keys}}');
       for (const value of Object.values(labels)) expect(value).toBeString();
     }
+  });
+
+  test('distinguishes usable, limited, failing and disabled accounts with a recovery time', async () => {
+    await i18n.changeLanguage('en');
+    const resetAt = Date.now() + 2 * 3600_000;
+    const [codex] = buildProviderGroups({}, [
+      { name: 'ok', type: 'codex', account_type: 'oauth', status: 'active' },
+      {
+        name: 'limited',
+        type: 'codex',
+        account_type: 'oauth',
+        status: 'error',
+        unavailable: true,
+        statusMessage: JSON.stringify({
+          error: { type: 'usage_limit_reached', resets_at: Math.floor(resetAt / 1000) },
+        }),
+      },
+      { name: 'broken', type: 'codex', account_type: 'oauth', status: 'error' },
+      { name: 'off', type: 'codex', account_type: 'oauth', disabled: true },
+    ]).filter((group) => group.id === 'codex');
+    const markup = renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(ProviderSubscriptionSummary, { group: codex, status: 'ready' })
+      )
+    );
+    expect(markup).toContain(i18n.t('providersPage.subscriptions.usable', { active: 1, total: 4 }));
+    for (const segment of ['active', 'limited', 'attention', 'disabled']) {
+      expect(markup).toContain(`data-segment="${segment}"`);
+    }
+    expect(markup).toContain('Usage limits renew automatically');
+    expect(markup).not.toContain('usage_limit_reached');
+  });
+
+  test('hides empty summaries for providers that rarely use signed-in accounts', () => {
+    const [gemini] = buildProviderGroups({}, []).filter((group) => group.id === 'gemini');
+    expect(
+      renderToStaticMarkup(
+        createElement(ProviderSubscriptionSummary, { group: gemini, status: 'ready' })
+      )
+    ).toBe('');
   });
 });

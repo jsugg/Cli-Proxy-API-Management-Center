@@ -3,6 +3,21 @@
   min-width: 0;
 }
 
+.effect {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.grantAction {
+  margin-top: 8px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  min-height: 36px;
+}
+
 .summary {
   margin: 0 0 12px;
   overflow-wrap: anywhere;

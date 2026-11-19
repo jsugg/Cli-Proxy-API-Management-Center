@@ -9,6 +9,22 @@ const modernReset = '2026-07-27T10:00:00.000000+00:00';
 const legacyReset = '2026-07-28T10:00:00.000000+00:00';
 
 describe('Claude Fable quota', () => {
+  test('recognizes versioned Fable display names', () => {
+    const windows = buildClaudeQuotaWindows(
+      {
+        limits: [
+          {
+            kind: 'weekly_scoped',
+            percent: 64,
+            resets_at: modernReset,
+            scope: { model: { id: null, display_name: 'Fable 5.2' } },
+          },
+        ],
+      },
+      t
+    );
+    expect(windows.map((window) => window.id)).toEqual(['seven-day-fable']);
+  });
   test('builds a Fable window from the modern scoped limits payload', () => {
     const windows = buildClaudeQuotaWindows(
       {

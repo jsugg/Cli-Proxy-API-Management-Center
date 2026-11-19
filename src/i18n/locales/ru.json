@@ -2555,6 +2555,7 @@
     "window_five_hour": "5-часовой лимит",
     "window_seven_day": "недельный лимит",
     "window_seven_day_overage_included": "недельный лимит с доп. использованием",
+    "window_fable": "Лимит Fable",
     "reason_ineligible": "Этот аккаунт не может использовать ручные сбросы.",
     "reason_unknown_grant": "Anthropic больше не показывает этот сброс.",
     "reason_paused": "Приостановлен Anthropic.",
@@ -2566,7 +2567,10 @@
     "reason_expired_grant": "Срок истёк.",
     "reason_cooldown": "Сброс недавно использовался; дождитесь окончания охлаждения.",
     "reason_pending_other": "Сначала разрешите незавершённый запрос.",
-    "reason_unknown": "Статус неизвестен; обновите и попробуйте снова."
+    "reason_unknown": "Статус неизвестен; обновите и попробуйте снова.",
+    "use_grant": "Использовать: {{kind}}",
+    "choose": "Выбрать сброс…",
+    "reason_provider_blocked": "Другой лимит не позволяет выполнить сброс. Обновите квоту."
   },
   "siwc": {
     "title": "Привязка SIWC",

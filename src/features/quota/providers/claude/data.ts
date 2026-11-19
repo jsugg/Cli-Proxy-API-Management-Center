@@ -55,7 +55,7 @@ const findFableUsageLimit = (payload: ClaudeUsagePayload) => {
     const modelName = (normalizeStringValue(limit?.scope?.model?.display_name) ?? '')
       .trim()
       .toLowerCase();
-    const isFable = modelName === 'fable' || modelName === 'fable 5';
+    const isFable = modelName === 'fable' || modelName.startsWith('fable ');
     return kind === 'weekly_scoped' && isFable && normalizeNumberValue(limit?.percent) !== null;
   });
 

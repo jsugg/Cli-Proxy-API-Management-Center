@@ -58,7 +58,7 @@ const defaultDependencies = {
   readStatus: readClaudeResetGrants,
   readOrganization: readClaudeOrganization,
   claim: claimClaudeResetGrant,
-  resetCooldown: authFilesApi.resetCooldown,
+  refreshCooldown: authFilesApi.refreshCooldown,
   now: () => Date.now(),
   requestId: generateResetGrantRequestId,
 };
@@ -148,7 +148,7 @@ export function createResetGrantOperations(deps = defaultDependencies) {
         if (!wasRetry || code === 'reset' || code === 'already_used') operation.code = code;
         if (code === 'reset' || code === 'already_used') {
           try {
-            const result = await deps.resetCooldown(authIndex);
+            const result = await deps.refreshCooldown(authIndex);
             assertSession();
             if (result.status !== 'ok' || result.auth_index !== authIndex) {
               throw new Error('Invalid cooldown reset response');

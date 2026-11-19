@@ -148,8 +148,11 @@ export function useClaudeResetGrants(
     loading: !status && !message && !pending,
     open,
     selected,
-    openDialog: () => {
-      if (!blocked && !lock.current) setDialog({ key, selected: null });
+    openDialog: (grantId?: string) => {
+      if (!blocked && !lock.current) {
+        if (grantId && !canRedeemGrant(grantId)) return;
+        setDialog({ key, selected: grantId ?? null });
+      }
     },
     closeDialog: () => {
       if (!lock.current) setDialog(null);
@@ -158,7 +161,7 @@ export function useClaudeResetGrants(
       if (open && canRedeemGrant(grantId) && !lock.current) setDialog({ key, selected: grantId });
     },
     blocked,
-    buttonLabel: pending ? 'retry' : 'use',
+    buttonLabel: pending ? 'retry' : 'choose',
     pendingGrantId: pending?.grantId,
     canRedeemGrant,
     unavailableReason: (grant: AnthropicResetGrant) =>

@@ -2551,6 +2551,7 @@
     "window_five_hour": "5-hour limit",
     "window_seven_day": "weekly limit",
     "window_seven_day_overage_included": "weekly limit incl. extra usage",
+    "window_fable": "Fable limit",
     "reason_ineligible": "This account is not eligible for manual resets.",
     "reason_unknown_grant": "Anthropic no longer lists this reset.",
     "reason_paused": "Paused by Anthropic.",
@@ -2562,7 +2563,10 @@
     "reason_expired_grant": "Expired.",
     "reason_cooldown": "A reset was used recently; wait for the cooldown to end.",
     "reason_pending_other": "Resolve the unknown claim first.",
-    "reason_unknown": "Status unknown; refresh and try again."
+    "reason_unknown": "Status unknown; refresh and try again.",
+    "use_grant": "Use {{kind}}",
+    "choose": "Choose a reset…",
+    "reason_provider_blocked": "Another usage limit prevents this reset. Refresh quota to check again."
   },
   "siwc": {
     "title": "Bind SIWC",

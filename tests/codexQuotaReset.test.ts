@@ -28,9 +28,9 @@ function setup(body: unknown, statusCode = 200) {
     calls.push('read');
     return response({});
   });
-  const clear = spyOn(authFilesApi, 'resetCooldown').mockImplementation(async () => {
+  const clear = spyOn(authFilesApi, 'refreshCooldown').mockImplementation(async () => {
     calls.push('clear');
-    return { status: 'ok', auth_index: 'test-index', models: [] };
+    return { status: 'ok', auth_index: 'test-index', recovered: true };
   });
   mocks.push(request, clear);
   return { calls, request, clear };
@@ -76,7 +76,7 @@ describe('Codex reset gateway cooldown', () => {
 
   test('rejects mismatched cooldown acknowledgements', async () => {
     const { clear } = setup({ code: 'reset' });
-    clear.mockResolvedValue({ status: 'ok', auth_index: 'other-index', models: [] });
+    clear.mockResolvedValue({ status: 'ok', auth_index: 'other-index', recovered: true });
     await expect(reset()).rejects.toThrow('codex_quota.reset_cooldown_failed');
   });
 

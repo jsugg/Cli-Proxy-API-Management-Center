@@ -50,6 +50,8 @@ export interface AnthropicResetGrant {
   percentUsed: Record<string, number>;
   resetType?: 'weekly' | 'session' | 'full' | null;
   givesBackWeekly?: boolean;
+  blocking?: string[];
+  unavailableReason?: string | null;
 }
 
 export interface AnthropicResetGrantStatus {
@@ -151,6 +153,12 @@ function parseGrant(value: unknown): AnthropicResetGrant | null {
   const { id, resets_total: total, resets_left: left } = value;
   if (typeof id !== 'string' || !ANTHROPIC_RESET_GRANT_ID_RE.test(id)) return null;
   if (!isCount(total) || !isCount(left) || left > total) return null;
+  if (
+    value.blocking !== undefined &&
+    (!Array.isArray(value.blocking) || value.blocking.some((item) => typeof item !== 'string'))
+  )
+    return null;
+  if (value.unavailable_reason != null && typeof value.unavailable_reason !== 'string') return null;
   const startsAt = optionalTimestamp(value.starts_at);
   const endsAt = optionalTimestamp(value.ends_at);
   const clears = parseWindows(value.clears);
@@ -187,6 +195,9 @@ function parseGrant(value: unknown): AnthropicResetGrant | null {
         ? value.type
         : null,
     givesBackWeekly,
+    blocking: (value.blocking as string[] | undefined) ?? [],
+    unavailableReason:
+      typeof value.unavailable_reason === 'string' ? value.unavailable_reason : null,
   };
 }
 
@@ -242,11 +253,13 @@ export function anthropicResetGrantBlocker(
   | 'exhausted'
   | 'not_limited'
   | 'no_usage'
+  | 'provider_blocked'
   | null {
   if (!status.eligible) return 'ineligible';
   const grant = status.grants.find((candidate) => candidate.id === grantId);
   if (!grant) return 'unknown_grant';
   if (grant.paused) return 'paused';
+  if (grant.blocking?.length || grant.unavailableReason) return 'provider_blocked';
   if (!grant.usableNow) return 'not_usable';
   if (grant.resetsLeft <= 0) return 'exhausted';
   if (grant.useRequiresLimit && !status.atLimit) return 'not_limited';
@@ -256,6 +269,12 @@ export function anthropicResetGrantBlocker(
 
 /** Missing usage is unknown, not evidence that a model refill would be wasted. */
 export function resetGrantHasNoUsage(grant: AnthropicResetGrant): boolean {
+  if (
+    grant.givesBackWeekly &&
+    Object.prototype.hasOwnProperty.call(grant.percentUsed, 'seven_day_overage_included')
+  ) {
+    return grant.percentUsed.seven_day_overage_included === 0;
+  }
   const percentages = Object.values(grant.percentUsed);
   return Boolean(
     grant.givesBackWeekly && percentages.length > 0 && percentages.every((percent) => percent === 0)

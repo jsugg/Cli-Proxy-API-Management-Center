@@ -18,7 +18,6 @@ import {
   type AnthropicResetSettledCode,
 } from '../src/services/api/claudeResetGrants';
 import { apiCallApi, type ApiCallRequest } from '../src/services/api/apiCall';
-import type { AuthFileCooldownResetResponse } from '../src/services/api/authFiles';
 import {
   createResetGrantOperations,
   ResetGrantPreflightError,
@@ -33,6 +32,47 @@ const status = () => parseAnthropicResetGrantStatus(block)!;
 const originalRequest = apiCallApi.request;
 afterEach(() => {
   apiCallApi.request = originalRequest;
+});
+
+test('Fable zero usage cannot spend a reset against unrelated weekly usage', () => {
+  const parsed = parseAnthropicResetGrantStatus({
+    ...block,
+    grants: [
+      {
+        ...grant,
+        gives_back_weekly: true,
+        clears: ['seven_day_overage_included'],
+        percent_used: { seven_day_overage_included: 0, seven_day: 100 },
+      },
+    ],
+  })!;
+  expect(anthropicResetGrantBlocker(parsed, grant.id)).toBe('no_usage');
+});
+
+test('upstream blockers cannot be bypassed by otherwise usable grant flags', () => {
+  const parsed = parseAnthropicResetGrantStatus({
+    ...block,
+    grants: [
+      {
+        ...grant,
+        blocking: ['five_hour'],
+        unavailable_reason: 'blocked_five_hour',
+      },
+    ],
+  })!;
+  expect(anthropicResetGrantBlocker(parsed, grant.id)).toBe('provider_blocked');
+});
+
+test('successful reset refreshes authoritative quota instead of erasing all cooldowns', async () => {
+  const calls = mockDefaultResetRequests();
+  using post = spyOn(apiClient, 'post').mockResolvedValue({
+    status: 'ok',
+    auth_index: 'a',
+    recovered: false,
+  });
+  await createResetGrantOperations().run('account', 'a', grant.id);
+  expect(post).toHaveBeenCalledWith('/routing/cooldown/refresh', { auth_index: 'a' });
+  expect(calls.filter((call) => call.method === 'POST')).toHaveLength(1);
 });
 
 describe('Claude reset grant fail-closed parsing', () => {
@@ -241,7 +281,7 @@ describe('Claude reset grant default request ID integration', () => {
           code: 'reset',
         });
         expect(randomCalls).toBe(1);
-        expect(cooldown).toHaveBeenCalledWith('/routing/cooldown/reset', { auth_index: 'index' });
+        expect(cooldown).toHaveBeenCalledWith('/routing/cooldown/refresh', { auth_index: 'index' });
       }
     );
   });
@@ -310,9 +350,11 @@ function setup() {
     requestId: () => `request-${++count}`,
     readStatus: async () => status(),
     readOrganization: async () => organization,
-    resetCooldown: async (authIndex: string): Promise<AuthFileCooldownResetResponse> => {
+    refreshCooldown: async (
+      authIndex: string
+    ): Promise<{ status: string; auth_index: string; recovered: boolean }> => {
       cleared.push(authIndex);
-      return { status: 'ok', auth_index: authIndex, models: [] };
+      return { status: 'ok', auth_index: authIndex, recovered: false };
     },
     claim: async (
       _auth: string,
@@ -376,14 +418,14 @@ test('cooldown clear failures keep the reset settled and report manual recovery'
       h.ids.push(id);
       return 'reset';
     };
-    h.deps.resetCooldown = async (authIndex) => {
+    h.deps.refreshCooldown = async (authIndex) => {
       h.cleared.push(authIndex);
       if (failure === 'network') throw new Error('unavailable');
       return JSON.parse(
         JSON.stringify({
           status: failure === 'status' ? 'error' : 'ok',
           auth_index: failure === 'credential' ? 'other' : authIndex,
-          models: [],
+          recovered: false,
         })
       );
     };
@@ -413,9 +455,9 @@ test('connection changes after a claim prevent cooldown clearing on the replacem
 test('a connection change during cooldown clearing cannot report success for the new session', async () => {
   const h = setup();
   h.deps.claim = async () => 'reset';
-  h.deps.resetCooldown = async (authIndex) => {
+  h.deps.refreshCooldown = async (authIndex) => {
     h.nextSession();
-    return { status: 'ok', auth_index: authIndex, models: [] };
+    return { status: 'ok', auth_index: authIndex, recovered: false };
   };
   const operations = createResetGrantOperations(h.deps);
   await expect(operations.run('account', 'a', grant.id)).rejects.toThrow('session');
@@ -688,12 +730,13 @@ test('card retains one dialog trigger with explicit selection and no second conf
     'src/features/quota/providers/claude/ClaudeResetGrantDialog.tsx'
   ).text();
   expect(card).toContain('quotaClasses.codexPlanValue}>{claudeReset.count');
-  expect(card.match(/onClick=\{claudeReset.openDialog\}/g)).toHaveLength(1);
+  expect(card).toContain('onChoose={claudeReset.openDialog}');
+  expect(card).toContain('onClick={() => claudeReset.openDialog()}');
   expect(card).toContain('<ClaudeResetGrantDialog');
   expect(card).not.toContain('onRedeem=');
   expect(hook).not.toContain('showConfirmation');
   expect(hook).not.toContain('selectResetGrant');
-  expect(hook).toContain('setDialog({ key, selected: null })');
+  expect(hook).toContain('setDialog({ key, selected: grantId ?? null })');
   expect(hook).toContain('if (!open || !selected || !canRedeemGrant(selected) || lock.current');
   expect(hook).toContain(
     "if (!current() || useAuthStore.getState().connectionStatus !== 'connected') return"

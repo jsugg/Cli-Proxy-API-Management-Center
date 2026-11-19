@@ -31,8 +31,20 @@ export function canChooseResetGrant(
 }
 
 /** Human labels for the windows a grant clears, in the provider's order. */
-export function formatResetWindows(t: TFunction, windows: readonly AnthropicResetWindow[]): string {
-  return windows.map((window) => t(`claude_reset.window_${window}`)).join(', ');
+export function formatResetWindows(
+  t: TFunction,
+  windows: readonly AnthropicResetWindow[],
+  grant?: AnthropicResetGrant
+): string {
+  return windows
+    .map((window) =>
+      t(
+        grant?.givesBackWeekly && window === 'seven_day_overage_included'
+          ? 'claude_reset.window_fable'
+          : `claude_reset.window_${window}`
+      )
+    )
+    .join(', ');
 }
 
 /** Why a grant cannot be chosen now, phrased for the person choosing. */

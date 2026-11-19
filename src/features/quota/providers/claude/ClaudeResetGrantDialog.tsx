@@ -55,7 +55,9 @@ export function ClaudeResetGrantChoices({
               </span>
               {grant.clears.length > 0 && (
                 <span>
-                  {t('claude_reset.clears', { windows: formatResetWindows(t, grant.clears) })}
+                  {t('claude_reset.clears', {
+                    windows: formatResetWindows(t, grant.clears, grant),
+                  })}
                 </span>
               )}
               <span>

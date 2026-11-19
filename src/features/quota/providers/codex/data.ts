@@ -528,9 +528,9 @@ const resetCodexQuota = async (file: AuthFileItem, t: TFunction): Promise<CodexQ
   const assertConnection = guardConfigConnection();
   const authIndex = await consumeCodexRateLimitResetCredit(file, t);
   try {
-    // Never clear a different connection's cooldown after awaiting redemption.
+    // Refresh provider quota on the initiating connection after redemption.
     assertConnection();
-    const result = await authFilesApi.resetCooldown(authIndex);
+    const result = await authFilesApi.refreshCooldown(authIndex);
     assertConnection();
     if (result.status !== 'ok' || result.auth_index !== authIndex) {
       throw new Error('Invalid cooldown reset response');

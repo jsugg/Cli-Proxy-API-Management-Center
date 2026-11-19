@@ -35,6 +35,48 @@ beforeAll(async () => {
 });
 
 describe('Claude reset grant details', () => {
+  test('uses the Fable window label only for Fable refund grants', () => {
+    const markup = render([
+      grant({ givesBackWeekly: false, clears: ['seven_day_overage_included'] }),
+    ]);
+    expect(markup).toContain('weekly limit incl. extra usage');
+    expect(markup).not.toContain('Clears: Fable limit');
+  });
+  test('each saved reset exposes its own named action and eligibility', () => {
+    const grants = [
+      grant({
+        id: 'launch-2610-fable',
+        label: 'Launch Fable',
+        givesBackWeekly: true,
+        clears: ['seven_day_overage_included'],
+      }),
+      grant({ id: 'launch-2610-fable-12mo', label: '12 months Fable', givesBackWeekly: true }),
+      grant({
+        id: 'launch-2610-fable-6mo',
+        label: '6 months Fable',
+        givesBackWeekly: true,
+        usableNow: false,
+      }),
+    ];
+    const markup = renderToStaticMarkup(
+      createElement(ClaudeResetGrantDetails, {
+        grants,
+        classes,
+        onChoose: () => {},
+        canRedeemGrant: (id: string) => id !== 'launch-2610-fable-6mo',
+        unavailableReason: () => 'not_usable',
+      })
+    );
+    expect(markup.match(/<button/g)).toHaveLength(3);
+    for (const id of grants.map((item) => item.id))
+      expect(markup).toContain(`data-grant-id="${id}"`);
+    expect(markup.match(/disabled=""/g)).toHaveLength(1);
+    expect(markup).toContain('Redeem Fable reset · Launch Fable');
+    expect(markup).toContain('Clears: Fable limit');
+    expect(markup).not.toContain('weekly limit incl. extra usage');
+    expect(markup).toContain('returns its share');
+  });
+
   test('uses Codex detail classes, timezone, remaining count and live relative date', () => {
     const markup = render([grant()]);
     expect(markup).toContain('class="codexResetCredits"');

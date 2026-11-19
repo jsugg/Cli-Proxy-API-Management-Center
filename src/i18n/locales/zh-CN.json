@@ -2544,6 +2544,7 @@
     "window_five_hour": "5 小时限额",
     "window_seven_day": "每周限额",
     "window_seven_day_overage_included": "含额外用量的每周限额",
+    "window_fable": "Fable 限额",
     "reason_ineligible": "此账户不符合手动重置条件。",
     "reason_unknown_grant": "Anthropic 已不再列出此重置。",
     "reason_paused": "已被 Anthropic 暂停。",
@@ -2555,7 +2556,10 @@
     "reason_expired_grant": "已过期。",
     "reason_cooldown": "最近已使用过重置；请等待冷却结束。",
     "reason_pending_other": "请先处理结果未知的申领。",
-    "reason_unknown": "状态未知；请刷新后重试。"
+    "reason_unknown": "状态未知；请刷新后重试。",
+    "use_grant": "使用{{kind}}",
+    "choose": "选择重置…",
+    "reason_provider_blocked": "其他用量限制阻止了此重置。请刷新配额后重试。"
   },
   "siwc": {
     "title": "绑定 SIWC",

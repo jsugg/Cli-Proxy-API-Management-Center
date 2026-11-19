@@ -126,7 +126,13 @@ export function QuotaCard(props: QuotaCardProps) {
   ) : undefined;
   const claudeAfterPlan = showClaudeReset ? (
     <>
-      <ClaudeResetGrantDetails grants={claudeReset.grants} classes={quotaClasses} />
+      <ClaudeResetGrantDetails
+        grants={claudeReset.grants}
+        classes={quotaClasses}
+        onChoose={claudeReset.openDialog}
+        canRedeemGrant={claudeReset.canRedeemGrant}
+        unavailableReason={claudeReset.unavailableReason}
+      />
       {claudeReset.message && (
         <div role="status" className={quotaClasses.codexResetCreditsError}>
           {t(`claude_reset.${claudeReset.message}`)}
@@ -260,7 +266,7 @@ export function QuotaCard(props: QuotaCardProps) {
               type="button"
               className={styles.actionPill}
               disabled={claudeReset.blocked}
-              onClick={claudeReset.openDialog}
+              onClick={() => claudeReset.openDialog()}
               aria-haspopup="dialog"
               title={t(`claude_reset.${claudeReset.buttonLabel}`)}
             >

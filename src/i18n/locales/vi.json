@@ -2557,6 +2557,7 @@
     "window_five_hour": "Giới hạn 5 giờ",
     "window_seven_day": "giới hạn hằng tuần",
     "window_seven_day_overage_included": "giới hạn hằng tuần gồm mức dùng thêm",
+    "window_fable": "Giới hạn Fable",
     "reason_ineligible": "Tài khoản này không đủ điều kiện đặt lại thủ công.",
     "reason_unknown_grant": "Anthropic không còn liệt kê lượt này.",
     "reason_paused": "Anthropic đã tạm dừng.",
@@ -2568,7 +2569,10 @@
     "reason_expired_grant": "Đã hết hạn.",
     "reason_cooldown": "Vừa dùng một lượt; hãy chờ hết thời gian chờ.",
     "reason_pending_other": "Hãy xử lý yêu cầu chưa rõ kết quả trước.",
-    "reason_unknown": "Không rõ trạng thái; hãy làm mới và thử lại."
+    "reason_unknown": "Không rõ trạng thái; hãy làm mới và thử lại.",
+    "use_grant": "Dùng {{kind}}",
+    "choose": "Chọn lượt đặt lại…",
+    "reason_provider_blocked": "Giới hạn khác ngăn đặt lại. Hãy làm mới hạn mức."
   },
   "siwc": {
     "title": "Liên kết SIWC",

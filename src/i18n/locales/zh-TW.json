@@ -2572,6 +2572,7 @@
     "window_five_hour": "5 小時限額",
     "window_seven_day": "每週限額",
     "window_seven_day_overage_included": "含額外用量的每週限額",
+    "window_fable": "Fable 額度",
     "reason_ineligible": "此帳戶不符合手動重置條件。",
     "reason_unknown_grant": "Anthropic 已不再列出此重置。",
     "reason_paused": "已被 Anthropic 暫停。",
@@ -2583,7 +2584,10 @@
     "reason_expired_grant": "已過期。",
     "reason_cooldown": "最近已使用過重置；請等待冷卻結束。",
     "reason_pending_other": "請先處理結果未知的申領。",
-    "reason_unknown": "狀態未知；請重新整理後重試。"
+    "reason_unknown": "狀態未知；請重新整理後重試。",
+    "use_grant": "使用{{kind}}",
+    "choose": "選擇重設…",
+    "reason_provider_blocked": "其他用量限制阻止此重設。請重新整理配額後再試。"
   },
   "siwc": {
     "title": "綁定 SIWC",

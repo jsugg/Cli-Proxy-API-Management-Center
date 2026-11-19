@@ -2551,6 +2551,7 @@
     "window_five_hour": "5 saatlik sınır",
     "window_seven_day": "haftalık sınır",
     "window_seven_day_overage_included": "ek kullanım dahil haftalık sınır",
+    "window_fable": "Fable limiti",
     "reason_ineligible": "Bu hesap elle sıfırlama için uygun değil.",
     "reason_unknown_grant": "Anthropic artık bu sıfırlamayı listelemiyor.",
     "reason_paused": "Anthropic tarafından duraklatıldı.",
@@ -2562,7 +2563,10 @@
     "reason_expired_grant": "Süresi doldu.",
     "reason_cooldown": "Yakın zamanda bir sıfırlama kullanıldı; bekleme süresinin bitmesini bekleyin.",
     "reason_pending_other": "Önce sonucu bilinmeyen talebi çözün.",
-    "reason_unknown": "Durum bilinmiyor; yenileyip tekrar deneyin."
+    "reason_unknown": "Durum bilinmiyor; yenileyip tekrar deneyin.",
+    "use_grant": "{{kind}} kullan",
+    "choose": "Sıfırlama seç…",
+    "reason_provider_blocked": "Başka bir kullanım limiti sıfırlamayı engelliyor. Kotayı yenileyin."
   },
   "siwc": {
     "title": "SIWC Bağla",

@@ -583,6 +583,12 @@ export const authFilesApi = {
       auth_index: authIndex,
     }),
 
+  refreshCooldown: (authIndex: string) =>
+    apiClient.post<{ status: string; auth_index: string; recovered: boolean }>(
+      '/routing/cooldown/refresh',
+      { auth_index: authIndex }
+    ),
+
   uploadFiles: async (files: File[]): Promise<AuthFileBatchUploadResult> => {
     const requestedNames = files.map((file) => file.name);
     if (requestedNames.length === 0) {

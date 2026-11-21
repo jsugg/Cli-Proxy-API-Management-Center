@@ -53,7 +53,8 @@ export type QuotaCardProps = {
   /** Codex only: credentials in the panel sharing this account user's credit setting. */
   creditOverageSharedCount?: number;
   onRefresh: () => void;
-  onReset: () => void;
+  /** Without a credit id the provider chooses which banked reset to spend. */
+  onReset: (creditId?: string) => void;
 };
 
 export function QuotaCard(props: QuotaCardProps) {
@@ -236,6 +237,9 @@ export function QuotaCard(props: QuotaCardProps) {
             classes={quotaClasses}
             planItems={claudePlanItems}
             afterPlan={entry.type === 'codex' ? codexAfterPlan : claudeAfterPlan}
+            onUseResetCredit={
+              showReset && canRefresh && !loading && !resetting ? onReset : undefined
+            }
           />
         ) : !retainedClaudeUsage ? (
           <div className={styles.idleHint}>{t(`${adapter.i18nPrefix}.idle`)}</div>
@@ -279,7 +283,7 @@ export function QuotaCard(props: QuotaCardProps) {
             <button
               type="button"
               className={styles.actionPill}
-              onClick={onReset}
+              onClick={() => onReset()}
               disabled={!canRefresh || loading || resetting}
               title={t('codex_quota.reset_button')}
             >

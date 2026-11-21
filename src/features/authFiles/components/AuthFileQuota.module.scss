@@ -353,6 +353,10 @@ button.quotaMessageAction {
   color: var(--text-secondary);
 }
 
+.codexResetCreditAction {
+  flex: 0 0 auto;
+}
+
 .codexResetCreditsError {
   font-size: $quota-font-size;
   font-weight: 500;

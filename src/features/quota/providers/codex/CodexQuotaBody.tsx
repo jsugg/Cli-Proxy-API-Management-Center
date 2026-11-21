@@ -19,6 +19,7 @@ import {
 import { resolveTimeZoneLabel } from '@/utils/time/timezone';
 import { formatDateTimeValue } from '@/utils/format';
 import { useNow } from '@/hooks/useNow';
+import { Button } from '@/components/ui/Button';
 import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId, resetCreditRowId } from '../../resetSchedule';
@@ -30,6 +31,7 @@ export function CodexQuotaBody({
   classes,
   planItems,
   afterPlan,
+  onUseResetCredit,
 }: QuotaBodyProps<CodexQuotaState>) {
   const { t, i18n } = useTranslation();
   const now = useNow();
@@ -162,6 +164,23 @@ export function CodexQuotaBody({
                     <QuotaResetLabel display={expiresDisplay} classes={classes} soon={soon} />
                   )}
                 </span>
+                {onUseResetCredit && credit.id && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className={classes.codexResetCreditAction}
+                    data-credit-id={credit.id}
+                    aria-haspopup="dialog"
+                    aria-label={t('codex_quota.use_reset_credit_aria', {
+                      index: index + 1,
+                      date: expiresDisplay?.absolute ?? credit.expiresAt,
+                    })}
+                    onClick={() => onUseResetCredit(credit.id)}
+                  >
+                    {t('codex_quota.use_reset_credit')}
+                  </Button>
+                )}
               </div>
             );
           })}

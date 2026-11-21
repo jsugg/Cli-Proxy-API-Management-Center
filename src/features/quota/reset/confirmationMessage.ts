@@ -8,10 +8,15 @@ import { CodexResetConfirmation } from './CodexResetConfirmation';
 export function resetConfirmationMessage(
   t: TFunction,
   quota: QuotaCardState | undefined,
-  name: string
+  name: string,
+  creditId?: string
 ): ReactNode {
   if (quota?.status === 'success' && 'rateLimitResetCredits' in quota) {
-    return createElement(CodexResetConfirmation, { quota: quota as CodexQuotaState, name });
+    return createElement(CodexResetConfirmation, {
+      quota: quota as CodexQuotaState,
+      name,
+      creditId,
+    });
   }
   return t('codex_quota.reset_confirm_message', { name });
 }

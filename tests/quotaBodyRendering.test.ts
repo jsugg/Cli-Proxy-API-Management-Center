@@ -35,6 +35,40 @@ beforeAll(async () => {
   await i18n.changeLanguage('en');
 });
 
+describe('CodexQuotaBody reset credit actions', () => {
+  const quota: CodexQuotaState = {
+    status: 'success',
+    windows: [],
+    rateLimitResetCreditsAvailableCount: 2,
+    rateLimitResetCredits: [
+      {
+        id: 'credit-a',
+        status: 'available',
+        grantedAt: '',
+        expiresAt: new Date(now + 10 * DAY_MS).toISOString(),
+      },
+      {
+        id: '',
+        status: 'available',
+        grantedAt: '',
+        expiresAt: new Date(now + 21 * DAY_MS).toISOString(),
+      },
+    ],
+    rateLimitResetCreditsError: '',
+  };
+
+  test('offers one button per identifiable credit only when resets are allowed', () => {
+    const withAction = renderToStaticMarkup(
+      createElement(CodexQuotaBody, { quota, classes, onUseResetCredit: () => undefined })
+    );
+    expect(withAction.match(/data-credit-id=/g)).toHaveLength(1);
+    expect(withAction).toContain('data-credit-id="credit-a"');
+    expect(withAction).toContain('Use this reset');
+    const readOnly = renderToStaticMarkup(createElement(CodexQuotaBody, { quota, classes }));
+    expect(readOnly).not.toContain('data-credit-id');
+  });
+});
+
 describe('CodexQuotaBody', () => {
   const quota: CodexQuotaState = {
     status: 'success',

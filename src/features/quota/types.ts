@@ -39,6 +39,7 @@ export interface QuotaClassMap {
   codexResetCreditRowSoon: string;
   codexResetCreditLabel: string;
   codexResetCreditTime: string;
+  codexResetCreditAction: string;
   codexResetCreditsError: string;
   // Antigravity 分组
   antigravityQuotaGroup: string;
@@ -78,6 +79,7 @@ export const QUOTA_CLASS_KEYS: readonly (keyof QuotaClassMap)[] = [
   'codexResetCreditRowSoon',
   'codexResetCreditLabel',
   'codexResetCreditTime',
+  'codexResetCreditAction',
   'codexResetCreditsError',
   'antigravityQuotaGroup',
   'antigravityQuotaGroupHeader',
@@ -110,4 +112,6 @@ export interface QuotaBodyProps<TState> {
   planItems?: ReactNode;
   /** Host-owned content placed right after the plan row, before usage rows. */
   afterPlan?: ReactNode;
+  /** Spend one specific banked reset; absent when the card cannot reset right now. */
+  onUseResetCredit?: (creditId: string) => void;
 }

@@ -403,7 +403,7 @@ export function QuotaPage() {
         glance={layout === 'compact' ? !expandedCards.has(key) : undefined}
         onToggleGlance={() => toggleExpandedCard(key)}
         onRefresh={() => void refreshQuota(entry.file, QUOTA_ADAPTERS[entry.type])}
-        onReset={() => resetQuota(entry.file, QUOTA_ADAPTERS[entry.type])}
+        onReset={(creditId) => resetQuota(entry.file, QUOTA_ADAPTERS[entry.type], creditId)}
       />
     );
   };

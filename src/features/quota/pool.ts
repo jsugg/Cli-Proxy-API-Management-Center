@@ -60,23 +60,28 @@ export function buildQuotaPools(
       }
       return group;
     };
-    for (const [id, periodHours, labelKey] of [
-      [
-        'five-hour',
-        5,
-        provider === 'claude' ? 'claude_quota.five_hour' : 'codex_quota.primary_window',
-      ],
-      [
-        provider === 'claude' ? 'seven-day' : 'weekly',
-        168,
-        provider === 'claude' ? 'claude_quota.seven_day' : 'codex_quota.secondary_window',
-      ],
-    ] as const) {
-      ensureWindow({ id, periodHours, label: '', labelKey, usedPercent: null, resetLabel: '' });
+    const loadedStates = accounts
+      .map((account) => quotaFor(account) as ClaudeQuotaState | CodexQuotaState | undefined)
+      .filter((state): state is ClaudeQuotaState | CodexQuotaState => state?.status === 'success');
+    // Until the first successful load, retain the usual unknown rows. After that,
+    // only provider-reported windows define which limits exist.
+    if (!loadedStates.length) {
+      for (const [id, periodHours, labelKey] of [
+        [
+          'five-hour',
+          5,
+          provider === 'claude' ? 'claude_quota.five_hour' : 'codex_quota.primary_window',
+        ],
+        [
+          provider === 'claude' ? 'seven-day' : 'weekly',
+          168,
+          provider === 'claude' ? 'claude_quota.seven_day' : 'codex_quota.secondary_window',
+        ],
+      ] as const) {
+        ensureWindow({ id, periodHours, label: '', labelKey, usedPercent: null, resetLabel: '' });
+      }
     }
-    for (const account of accounts) {
-      const state = quotaFor(account) as ClaudeQuotaState | CodexQuotaState | undefined;
-      if (!state) continue;
+    for (const state of loadedStates) {
       const observedAt = Date.parse(state.observedAt ?? '');
       const fresh =
         state.status === 'success' &&

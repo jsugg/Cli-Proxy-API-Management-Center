@@ -23,6 +23,28 @@ test('summaries explain missing data and never display an invented balance or fo
   expect(markup).not.toContain('100%');
 });
 
+test('loaded summaries omit absent limits while retaining reported unknown limits', async () => {
+  await i18n.changeLanguage('en');
+  const markup = renderToStaticMarkup(
+    createElement(QuotaPoolSummary, {
+      entries: ['a', 'b', 'c'].map((name) => ({ type: 'claude' as const, file: { name } })),
+      quotaFor: () => ({
+        status: 'success',
+        stale: true,
+        windows: [
+          { id: 'seven-day', label: 'Weekly', usedPercent: 20, periodHours: 168, resetLabel: '' },
+        ],
+      }),
+      now: Date.now(),
+    })
+  );
+  expect(markup).not.toContain('5-hour limit');
+  expect(markup).not.toContain(' · 5h');
+  expect(markup).toContain('Weekly');
+  expect(markup).toContain('Unknown');
+  expect(markup).toContain('0/3');
+});
+
 test('timeline masks email identities by default, including titles', () => {
   const now = Date.now();
   const markup = renderToStaticMarkup(

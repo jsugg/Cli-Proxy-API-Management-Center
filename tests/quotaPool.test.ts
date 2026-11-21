@@ -1,5 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { buildQuotaPools, maskQuotaIdentity } from '../src/features/quota/pool';
+import type { TFunction } from 'i18next';
+import { buildClaudeQuotaWindows } from '../src/features/quota/providers/claude/data';
+import { buildCodexQuotaWindows } from '../src/features/quota/providers/codex/data';
 import type { ClaudeQuotaState } from '../src/types';
 
 const now = Date.parse('2026-11-16T12:00:00Z');
@@ -24,6 +27,108 @@ const quota = (
 });
 
 describe('quota pool summaries', () => {
+  test.each(['claude', 'codex'] as const)(
+    '%s omits null provider slots after successful loads',
+    (provider) => {
+      const t = ((key: string) => key) as TFunction;
+      const windows =
+        provider === 'claude'
+          ? buildClaudeQuotaWindows(
+              {
+                five_hour: null,
+                seven_day: { utilization: 20, resets_at: new Date(now + 1000).toISOString() },
+              },
+              t
+            )
+          : buildCodexQuotaWindows(
+              {
+                rate_limit: {
+                  primary_window: null,
+                  secondary_window: {
+                    used_percent: 20,
+                    limit_window_seconds: 604800,
+                    reset_at: (now + 1000) / 1000,
+                  },
+                },
+              },
+              t
+            );
+      const entries = ['a', 'b', 'c'].map((name) => ({
+        type: provider,
+        file: { name, type: provider },
+      }));
+      const pool = buildQuotaPools(entries, () => quota(20, { windows }), now)[0];
+      expect(pool.total).toBe(3);
+      expect(pool.windows.map((window) => window.id)).toEqual([
+        provider === 'claude' ? 'seven-day' : 'weekly',
+      ]);
+    }
+  );
+
+  test('one reported short window retains coverage of all three enabled credentials', () => {
+    const short = { ...quota(20).windows[0], id: 'five-hour', periodHours: 5 };
+    const pool = buildQuotaPools(
+      [entry('a'), entry('b'), entry('c')],
+      (item) => quota(20, item.file.name === 'a' ? { windows: [short] } : {}),
+      now
+    )[0];
+    expect(pool.total).toBe(3);
+    expect(pool.windows.find((window) => window.id === 'five-hour')).toMatchObject({
+      known: 1,
+      remainingPercent: 80,
+    });
+  });
+
+  test('a reported stale short window remains unknown', () => {
+    const short = { ...quota(20).windows[0], id: 'five-hour', periodHours: 5 };
+    const pool = buildQuotaPools(
+      [entry('a'), entry('b'), entry('c')],
+      (item) => quota(20, item.file.name === 'a' ? { windows: [short], stale: true } : {}),
+      now
+    )[0];
+    expect(pool.total).toBe(3);
+    expect(pool.windows.find((window) => window.id === 'five-hour')).toMatchObject({
+      known: 0,
+      remainingPercent: null,
+      nextResetAtMs: null,
+    });
+  });
+
+  test.each(['claude', 'codex'] as const)(
+    '%s keeps unknown placeholders until any account succeeds',
+    (provider) => {
+      const entries = ['a', 'b', 'c'].map((name) => ({
+        type: provider,
+        file: { name, type: provider },
+      }));
+      const pool = buildQuotaPools(
+        entries,
+        (item) =>
+          item.file.name === 'a' ? undefined : quota(20, { status: 'loading', windows: [] }),
+        now
+      )[0];
+      expect(pool.total).toBe(3);
+      expect(pool.windows.map((window) => window.id)).toEqual([
+        'five-hour',
+        provider === 'claude' ? 'seven-day' : 'weekly',
+      ]);
+      expect(
+        pool.windows.every((window) => window.known === 0 && window.remainingPercent === null)
+      ).toBeTrue();
+    }
+  );
+
+  test('successful empty windows remove placeholders and failed states cannot add limits', () => {
+    const pool = buildQuotaPools(
+      [entry('a'), entry('b')],
+      (item) =>
+        item.file.name === 'a' ? quota(20, { windows: [] }) : quota(20, { status: 'error' }),
+      now
+    )[0];
+    expect(pool.total).toBe(2);
+    expect(pool.windows).toEqual([]);
+  });
+
   test.each([0, 100])('keeps a measured endpoint distinct from unknown: %s used', (used) => {
     const weekly = buildQuotaPools([entry('a')], () => quota(used), now)[0].windows.find(
       (window) => window.id === 'seven-day'

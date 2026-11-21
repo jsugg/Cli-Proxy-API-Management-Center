@@ -10,6 +10,12 @@ import {
 } from './session';
 import type { HistoryProvider } from './types';
 
+export interface QuotaHistoryLoadOptions {
+  maxPages?: number;
+  loadAll?: boolean;
+  incremental?: boolean;
+}
+
 /**
  * Read companion observations automatically; never issue provider probes from the browser.
  * Refreshes pause while the tab is hidden and resume, once, when it becomes visible.
@@ -17,7 +23,8 @@ import type { HistoryProvider } from './types';
 export function useQuotaHistory(
   provider: HistoryProvider | undefined,
   rangeMs: number,
-  enabled: boolean
+  enabled: boolean,
+  { maxPages, loadAll = false, incremental = false }: QuotaHistoryLoadOptions = {}
 ) {
   const connectionStatus = useAuthStore((state) => state.connectionStatus);
   const generation = useQuotaStore((state) => state.cacheGeneration);
@@ -29,6 +36,9 @@ export function useQuotaHistory(
     rangeMs,
     enabled,
     connectionStatus,
+    maxPages,
+    loadAll,
+    incremental,
   ]);
   const [snapshot, setSnapshot] = useState<{ owner: string; state: QuotaHistoryState } | null>(
     null
@@ -46,6 +56,9 @@ export function useQuotaHistory(
     const session = new QuotaHistorySession({
       provider,
       rangeMs,
+      maxPages,
+      loadAll,
+      incremental,
       isCurrent: current,
       client: createQuotaHistoryClient(current),
     });
@@ -86,7 +99,18 @@ export function useQuotaHistory(
       session.dispose();
       sessionRef.current = null;
     };
-  }, [connectionStatus, enabled, generation, owner, provider, rangeMs, revision]);
+  }, [
+    connectionStatus,
+    enabled,
+    generation,
+    owner,
+    provider,
+    rangeMs,
+    revision,
+    maxPages,
+    loadAll,
+    incremental,
+  ]);
 
   const refresh = useCallback(() => {
     void sessionRef.current?.refresh();

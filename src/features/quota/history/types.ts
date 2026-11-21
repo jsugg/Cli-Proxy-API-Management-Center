@@ -1,4 +1,8 @@
-export type HistoryProvider = 'claude' | 'codex';
+/**
+ * Lowercase provider slug reported by the collector (`claude`, `codex`, …). Kept open so a
+ * provider the collector starts sampling shows up without frontend changes.
+ */
+export type HistoryProvider = string;
 
 export interface QuotaHistorySample {
   observedAt: number;

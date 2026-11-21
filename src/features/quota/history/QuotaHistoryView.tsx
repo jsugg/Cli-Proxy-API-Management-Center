@@ -15,6 +15,7 @@ import {
   type TrackOverview,
 } from './model';
 import { buildHistoryPlot } from './plot';
+import { historyLimitLabel, historyProviderLabel } from './labels';
 import type { QuotaHistoryState } from './session';
 import styles from './QuotaHistoryView.module.scss';
 
@@ -107,31 +108,8 @@ export function QuotaHistoryView({
     });
   const formatPercent = (value: number) =>
     `${value.toLocaleString(i18n.language, { maximumFractionDigits: 1 })}%`;
-  const limitLabel = (item: HistoryTrack) => {
-    const claudeKeys: Record<string, string> = {
-      'five-hour': 'five_hour',
-      'seven-day': 'seven_day',
-      'seven-day-opus': 'seven_day_opus',
-      'seven-day-sonnet': 'seven_day_sonnet',
-      'seven-day-oauth-apps': 'seven_day_oauth_apps',
-      'seven-day-cowork': 'seven_day_cowork',
-      'seven-day-fable': 'seven_day_fable',
-    };
-    const codexKeys: Record<string, string> = {
-      'five-hour': 'primary_window',
-      weekly: 'secondary_window',
-      monthly: 'team_secondary_window',
-      'code-review-five-hour': 'code_review_primary_window',
-      'code-review-weekly': 'code_review_secondary_window',
-      'code-review-monthly': 'code_review_team_secondary_window',
-    };
-    const key = (item.provider === 'claude' ? claudeKeys : codexKeys)[item.limitId];
-    return key
-      ? t(`${item.provider}_quota.${key}`)
-      : t('quota_history.limit', { id: item.limitId });
-  };
   const trackLabel = (item: HistoryTrack) =>
-    `${item.provider === 'claude' ? 'Claude' : 'Codex'} · ${accountLabel(item, entries, labelForFile)} · ${limitLabel(item)} · ${
+    `${historyProviderLabel(t, item.provider)} · ${accountLabel(item, entries, labelForFile)} · ${historyLimitLabel(t, item.provider, item.limitId)} · ${
       item.periodSeconds === null
         ? t('quota_history.period_unknown')
         : t('quota_pool.period', { hours: item.periodSeconds / 3600 })

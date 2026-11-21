@@ -44,8 +44,10 @@ function instant(value: unknown): number {
 function nullableInstant(value: unknown): number | null {
   return value === null ? null : instant(value);
 }
+export const HISTORY_MAX_PROVIDERS = 32;
+const PROVIDER_SLUG = /^[a-z][a-z0-9_-]{0,31}$/;
 function provider(value: unknown): HistoryProvider {
-  return value === 'claude' || value === 'codex' ? value : invalid();
+  return typeof value === 'string' && PROVIDER_SLUG.test(value) ? value : invalid();
 }
 
 /** Validate the versioned companion capability response without exposing diagnostic bodies. */
@@ -56,7 +58,7 @@ export function parseHistoryCapabilities(value: unknown): QuotaHistoryCapabiliti
   const status = object(data.status);
   if (
     !Array.isArray(data.providers) ||
-    data.providers.length > 2 ||
+    data.providers.length > HISTORY_MAX_PROVIDERS ||
     typeof status.stale !== 'boolean'
   )
     invalid();

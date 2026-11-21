@@ -5,6 +5,7 @@ import { AuthFilesPage } from '@/features/authFiles/AuthFilesPage';
 import { AuthFilesOAuthExcludedEditPage } from '@/pages/AuthFilesOAuthExcludedEditPage';
 import { AuthFilesOAuthModelAliasEditPage } from '@/pages/AuthFilesOAuthModelAliasEditPage';
 import { OAuthPage } from '@/features/oauth/OAuthPage';
+import { BurnRatePage } from '@/features/quota/burnRate/BurnRatePage';
 import { QuotaPage } from '@/features/quota/QuotaPage';
 import { RoutingPage } from '@/features/routing/RoutingPage';
 import { PluginResourcePage } from '@/features/plugins/PluginResourcePage';
@@ -30,6 +31,7 @@ const createMainRoutes = (supportsPlugin: boolean) => [
   { path: '/oauth', element: <OAuthPage /> },
   { path: '/routing', element: <RoutingPage /> },
   { path: '/quota', element: <QuotaPage /> },
+  { path: '/burn-rate', element: <BurnRatePage /> },
   ...(supportsPlugin
     ? [
         { path: '/plugin-pages/:pluginId/:menuIndex', element: <PluginResourcePage /> },

@@ -74,6 +74,13 @@ const codexQuota = (planType: string, used: [number, number], soon = false): Cod
   observedAt: new Date().toISOString(),
   planType,
   subscriptionActiveUntil: new Date(Date.now() + 26 * DAY_MS).toISOString(),
+  rateLimitResetCreditsAvailableCount: 2,
+  rateLimitResetCredits: [1, 2].map((index) => ({
+    id: `synthetic-reset-${index}`,
+    status: 'available',
+    grantedAt: new Date(Date.now() - DAY_MS).toISOString(),
+    expiresAt: new Date(Date.now() + index * DAY_MS).toISOString(),
+  })),
   windows: [
     codexWindow('five-hour', '5 小时', used[0], soon ? 0.4 * HOUR_MS : 3 * HOUR_MS, 5),
     codexWindow('weekly', '每周', used[1], 4 * DAY_MS, 168),

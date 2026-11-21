@@ -21,7 +21,7 @@ export function QuotaHistoryPanel({
     rangeHours * 3600000,
     enabled
   );
-  if (!enabled) return null;
+  if (!enabled || (provider && state.status === 'unsupported')) return null;
   return (
     <QuotaHistoryView
       state={state}

@@ -134,3 +134,23 @@ describe('quota history API boundary', () => {
     }
   });
 });
+
+test('accepts generic lowercase provider slugs and rejects malformed or excessive providers', () => {
+  expect(parseHistoryCapabilities({ ...capabilities, providers: ['xai'] }).providers).toEqual([
+    'xai',
+  ]);
+  expect(
+    parseHistoryPage(
+      { ...page, samples: [{ ...sample, provider: 'xai' }] },
+      { ...query, provider: 'xai' }
+    ).samples[0].provider
+  ).toBe('xai');
+  for (const providers of [
+    ['Claude'],
+    ['../x'],
+    ['a'.repeat(33)],
+    Array.from({ length: 33 }, (_, i) => `p${i}`),
+  ]) {
+    expect(() => parseHistoryCapabilities({ ...capabilities, providers })).toThrow();
+  }
+});

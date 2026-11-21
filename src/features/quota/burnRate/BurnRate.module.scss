@@ -1,0 +1,352 @@
+.page {
+  --series-0: #2a78d6;
+  --series-1: #eb6834;
+  --series-2: #1baf7a;
+  --series-3: #eda100;
+  color: var(--text-primary);
+  min-width: 0;
+  padding: 8px 0 24px;
+  :global([data-theme='dark']) & {
+    --series-0: #3987e5;
+    --series-1: #d95926;
+    --series-2: #199e70;
+    --series-3: #c98500;
+  }
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 12px;
+  h1 {
+    margin: 0 0 8px;
+    font-size: 30px;
+    letter-spacing: -0.8px;
+  }
+  p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+  }
+}
+.controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.note {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.warning {
+  padding: 12px;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  font-size: 13px;
+}
+.columnHead,
+.row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 205px;
+  gap: 22px;
+}
+.columnHead {
+  padding: 18px 0 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+.row {
+  padding: 32px 0 24px;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+}
+.meta {
+  min-width: 0;
+}
+.provider {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  img,
+  .fallback {
+    width: 25px;
+    height: 25px;
+    object-fit: contain;
+  }
+  h2 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  p {
+    margin: 5px 0 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+}
+.fallback {
+  display: grid;
+  place-items: center;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+}
+.legend {
+  list-style: none;
+  margin: 18px 0 0 35px;
+  padding: 0;
+  font-size: 12px;
+  li {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 7px 0;
+  }
+  i {
+    width: 13px;
+    height: 2px;
+    flex-shrink: 0;
+  }
+}
+.chartBlock {
+  min-width: 0;
+}
+.chartLabels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding-left: 36px;
+  min-height: 30px;
+  font-size: 11px;
+  align-items: center;
+}
+.plot {
+  position: relative;
+  height: 180px;
+  margin-left: 36px;
+  background: var(--bg-primary);
+}
+.plot > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.grid {
+  stroke: var(--border-color);
+  stroke-width: 0.7;
+}
+.future {
+  fill: var(--text-primary);
+  opacity: 0.025;
+}
+.nowLine {
+  stroke: var(--text-primary);
+  stroke-width: 1;
+  opacity: 0.65;
+}
+.crosshair {
+  stroke: var(--text-primary);
+  stroke-width: 1;
+  opacity: 0.45;
+  stroke-dasharray: 2 3;
+}
+.yAxis {
+  position: absolute;
+  right: calc(100% + 7px);
+  top: -6px;
+  bottom: -6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+.xAxis {
+  position: relative;
+  margin: 10px 0 0 36px;
+  height: 22px;
+  font-size: 10px;
+  color: var(--text-secondary);
+  span {
+    position: absolute;
+    transform: translateX(-50%);
+  }
+}
+.markers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--bg-primary);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-primary);
+}
+.tooltip {
+  position: absolute;
+  top: 15px;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--floating-surface);
+  box-shadow: var(--floating-shadow);
+  font-size: 11px;
+  pointer-events: none;
+  z-index: 1;
+  max-width: 80%;
+}
+.details {
+  margin: 6px 0 0 36px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  summary {
+    cursor: pointer;
+    width: fit-content;
+  }
+  summary:focus-visible {
+    outline: 2px solid var(--text-primary);
+    outline-offset: 4px;
+  }
+}
+.tableScroll {
+  max-height: 250px;
+  overflow: auto;
+  width: 100%;
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  th,
+  td {
+    padding: 8px;
+    border-bottom: 1px solid var(--border-color);
+    text-align: left;
+  }
+}
+.summary {
+  font-size: 13px;
+  p {
+    margin: 9px 0;
+  }
+}
+.reset {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  strong {
+    font-size: 16px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  p {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: 4px 0 0;
+  }
+}
+.ring {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  circle {
+    fill: none;
+    stroke-width: 3;
+  }
+  .ringBase {
+    stroke: var(--border-color);
+  }
+}
+.status {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex: 0 0 6px;
+  }
+}
+.good {
+  background: var(--success-color);
+}
+.amber {
+  background: var(--quota-medium-color);
+}
+.danger {
+  background: var(--danger-color);
+}
+.empty {
+  grid-column: 2 / -1;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.preview {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 30px;
+}
+.previewControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+@media (max-width: 1050px) {
+  .columnHead,
+  .row {
+    grid-template-columns: 115px minmax(0, 1fr) 165px;
+    gap: 16px;
+  }
+}
+@media (max-width: 700px) {
+  .columnHead {
+    display: none;
+  }
+  .row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+    padding: 24px 0;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 20px;
+  }
+  .meta > .note {
+    width: 100%;
+    margin: 0;
+  }
+  .legend {
+    margin: 0;
+  }
+  .empty {
+    grid-column: 1;
+  }
+  .summary {
+    padding-left: 36px;
+  }
+  .plot {
+    height: 180px;
+  }
+  .preview {
+    padding: 18px;
+  }
+  .header h1 {
+    font-size: 26px;
+  }
+  .chartLabels {
+    font-size: 10px;
+    gap: 6px 12px;
+    padding-bottom: 8px;
+  }
+}

@@ -24,6 +24,14 @@ function RootShell() {
 const devPreviewRoutes = import.meta.env.DEV
   ? [
       {
+        path: '/__preview/burn-rate',
+        HydrateFallback: () => null,
+        lazy: async () => {
+          const { BurnRatePreview } = await import('@/features/quota/burnRate/BurnRatePreview');
+          return { Component: BurnRatePreview };
+        },
+      },
+      {
         path: '/__preview/quota-tiers',
         HydrateFallback: () => null,
         lazy: async () => {

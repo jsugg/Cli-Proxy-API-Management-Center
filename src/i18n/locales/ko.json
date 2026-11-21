@@ -1747,6 +1747,8 @@
     "weekday_thu": "목",
     "weekday_fri": "금",
     "weekday_sat": "토",
+    "relative_future": "{{duration}} 후",
+    "relative_past": "{{duration}} 전",
     "freshness": "{{relative}} 업데이트",
     "freshness_stale": "마지막 업데이트 {{relative}}"
   },

@@ -1703,6 +1703,8 @@
     "search_empty_title": "Không có tài khoản phù hợp",
     "search_empty_desc": "Hãy thử tên file hoặc email khác, hoặc xóa tìm kiếm.",
     "search_clear": "Xóa tìm kiếm",
+    "relative_future": "sau {{duration}}",
+    "relative_past": "{{duration}} trước",
     "freshness": "Cập nhật {{relative}}",
     "freshness_stale": "Cập nhật lần cuối {{relative}}"
   },

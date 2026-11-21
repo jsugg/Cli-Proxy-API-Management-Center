@@ -85,7 +85,7 @@ describe('Claude reset grant details', () => {
     expect(markup).toContain('Launch · 2 / 3 resets remaining');
     expect(markup).toContain(formatInstantShort(expiry));
     expect(markup).toContain('class="quotaResetRelative"');
-    expect(markup).toContain('in 11 days');
+    expect(markup).toContain('in 11d');
   });
 
   test('hides empty and spent grants', () => {

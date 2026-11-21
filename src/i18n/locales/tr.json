@@ -1747,6 +1747,8 @@
     "weekday_thu": "Per",
     "weekday_fri": "Cum",
     "weekday_sat": "Cmt",
+    "relative_future": "{{duration}} sonra",
+    "relative_past": "{{duration}} önce",
     "freshness": "{{relative}} güncellendi",
     "freshness_stale": "Son güncelleme {{relative}}"
   },

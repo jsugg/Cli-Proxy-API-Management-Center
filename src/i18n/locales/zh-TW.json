@@ -1768,6 +1768,8 @@
     "weekday_thu": "四",
     "weekday_fri": "五",
     "weekday_sat": "六",
+    "relative_future": "{{duration}}後",
+    "relative_past": "{{duration}}前",
     "freshness": "更新於{{relative}}",
     "freshness_stale": "最後更新於{{relative}}"
   },

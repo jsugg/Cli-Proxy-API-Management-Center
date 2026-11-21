@@ -1747,6 +1747,8 @@
     "weekday_thu": "Thu",
     "weekday_fri": "Fri",
     "weekday_sat": "Sat",
+    "relative_future": "in {{duration}}",
+    "relative_past": "{{duration}} ago",
     "freshness": "Updated {{relative}}",
     "freshness_stale": "Last updated {{relative}}"
   },

@@ -1760,6 +1760,8 @@
     "weekday_thu": "Чт",
     "weekday_fri": "Пт",
     "weekday_sat": "Сб",
+    "relative_future": "через {{duration}}",
+    "relative_past": "{{duration}} назад",
     "freshness": "Обновлено {{relative}}",
     "freshness_stale": "Последнее обновление {{relative}}"
   },

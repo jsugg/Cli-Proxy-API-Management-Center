@@ -161,14 +161,14 @@ describe('CodexQuotaBody', () => {
 
     expect(markup).toContain('08-02 18:00');
     expect(markup).toContain('quotaResetRelative');
-    expect(markup).toMatch(/3 hours/);
+    expect(markup).toContain('in 3h');
   });
 
   test('renders reset-credit expiry in local time with a countdown', () => {
     const markup = renderToStaticMarkup(createElement(CodexQuotaBody, { quota, classes }));
 
     expect(markup).toContain(formatInstantShort(now + 11 * DAY_MS));
-    expect(markup).toMatch(/11 days/);
+    expect(markup).toContain('in 11d');
   });
 
   test('highlights a credit expiring within the final hour', () => {
@@ -257,7 +257,7 @@ describe('KimiQuotaBody', () => {
 
     expect(markup).toContain(formatInstantShort(resetAtMs));
     expect(markup).toContain('quotaResetRelative');
-    expect(markup).toMatch(/3 hours/);
+    expect(markup).toContain('in 3h');
     expect(markup).not.toContain('resets in 3h');
   });
 });
@@ -289,7 +289,7 @@ describe('ClaudeQuotaBody', () => {
 
     expect(markup).toContain('08-02 17:00');
     expect(markup).toContain('08-06 04:00');
-    expect(markup).toMatch(/2 hours/);
-    expect(markup).toMatch(/4 days/);
+    expect(markup).toContain('in 2h');
+    expect(markup).toContain('in 4d');
   });
 });

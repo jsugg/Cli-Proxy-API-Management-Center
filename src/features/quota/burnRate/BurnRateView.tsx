@@ -5,7 +5,7 @@ import { Select } from '@/components/ui/Select';
 import { getAuthFileIcon, getTypeLabel } from '@/features/authFiles/constants';
 import { useNow } from '@/hooks/useNow';
 import { useThemeStore } from '@/stores';
-import { historyLimitLabel } from '../history/labels';
+import { burnLimitLabel } from './labels';
 import type { QuotaHistoryState } from '../history/session';
 import { buildBurnRate, type BurnGroup, type BurnWindow } from './model';
 import { BurnRateChart } from './BurnRateChart';
@@ -161,7 +161,7 @@ export function BurnRateView({ state, connected, onRefresh, now: fixedNow }: Bur
                       {row.groups.map((group) => (
                         <li key={group.key}>
                           <i style={{ background: `var(--series-${group.color})` }} />
-                          {historyLimitLabel(t, row.provider, group.limitId)}
+                          {burnLimitLabel(t, row.provider, group, row.groups)}
                         </li>
                       ))}
                     </ul>

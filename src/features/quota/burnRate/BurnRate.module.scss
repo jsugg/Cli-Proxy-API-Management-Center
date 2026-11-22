@@ -135,6 +135,11 @@
   height: 100%;
   overflow: visible;
 }
+.plot > .hoverOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
 .grid {
   stroke: var(--border-color);
   stroke-width: 0.7;

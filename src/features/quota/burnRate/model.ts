@@ -119,7 +119,7 @@ function distinctResets(values: number[]): number[] {
 }
 function pooledHistory(tracks: HistoryTrack[], now: number): BurnPoint[] {
   const indexes = tracks.map(() => -1);
-  const previousRows: (QuotaHistorySample | undefined)[] = tracks.map(() => undefined);
+  const previousReadings: (QuotaHistorySample | undefined)[] = tracks.map(() => undefined);
   const result: BurnPoint[] = [];
   const times: number[] = [];
   for (let at = Math.ceil((now - BURN_HISTORY_MS) / GRID_MS) * GRID_MS; at <= now; at += GRID_MS)
@@ -133,14 +133,22 @@ function pooledHistory(tracks: HistoryTrack[], now: number): BurnPoint[] {
       while (
         indexes[index] + 1 < track.samples.length &&
         track.samples[indexes[index] + 1].observedAt <= at
-      )
-        indexes[index]++;
+      ) {
+        const previous = track.samples[indexes[index]];
+        const row = track.samples[++indexes[index]];
+        if (previous && differentWindow(previous, row)) boundary = true;
+        if (measurable(row)) {
+          const reading = previousReadings[index];
+          // Check every account reading before averaging, including rows between grid ticks.
+          // Unknown polls do not erase the last comparable cumulative measurement.
+          if (reading && measurable(reading) && row.usedPercent < reading.usedPercent)
+            boundary = true;
+          previousReadings[index] = row;
+        }
+      }
       const row = track.samples[indexes[index]];
-      const previous = previousRows[index];
       const expected = row && row.observedAt > at - 15 * 60_000;
-      previousRows[index] = expected ? row : undefined;
       if (!expected) return;
-      if (previous && differentWindow(previous, row)) boundary = true;
       if (!measurable(row) || row.observedAt < boundaryAt(track, at)) {
         unknown = true;
       } else if (row.resetAt > at) {

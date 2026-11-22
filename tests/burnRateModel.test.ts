@@ -276,3 +276,34 @@ test('future exhaustion stays hidden when an expected unknown account prevents d
   expect(group.projection).toBeNull();
   expect(group.earliestExhaustion).toBeNull();
 });
+
+test('recorded paths split on per-account usage reversals within the same reset window', () => {
+  const [group] = groups([sample(1 / 6, 90), sample(1 / 12, 20), sample(0, 25)]);
+  expect(group.history.slice(-3).map((point) => point.remaining)).toEqual([10, 80, 75]);
+  expect(group.history.at(-2)?.boundary).toBeTrue();
+  expect(group.history.at(-1)?.boundary).toBeUndefined();
+  expect(group.ratePerDay).toBeNull();
+});
+
+test('per-account reversals split the pooled path even when other usage masks the refund', () => {
+  const [group] = groups([
+    sample(1 / 6, 90),
+    sample(1 / 12, 20),
+    sample(0, 25),
+    sample(1 / 6, 0, { accountId: 'b' }),
+    sample(1 / 12, 80, { accountId: 'b' }),
+    sample(0, 85, { accountId: 'b' }),
+  ]);
+  expect(group.history.slice(-3).map((point) => point.remaining)).toEqual([55, 50, 45]);
+  expect(group.history.at(-2)?.boundary).toBeTrue();
+});
+
+test('reversals between grid ticks and across unknown polls still split the recorded path', () => {
+  for (const middle of [
+    [sample(4 / 60, 20), sample(3 / 60, 95)],
+    [sample(7 / 60, 0, { state: 'unknown', usedPercent: null }), sample(4 / 60, 20)],
+  ]) {
+    const [group] = groups([sample(1 / 6, 90), ...middle, sample(0, 96)]);
+    expect(group.history.at(-1)?.boundary).toBeTrue();
+  }
+});

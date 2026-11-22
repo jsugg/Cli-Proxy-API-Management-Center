@@ -1,5 +1,12 @@
 import { expect, test } from 'bun:test';
-import { createElement } from 'react';
+import {
+  Children,
+  createElement,
+  isValidElement,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { readFileSync } from 'node:fs';
 import i18n from '../src/i18n';
@@ -25,7 +32,6 @@ test('generic providers, direct labels, accessible table, coverage and reset sum
     'xAI',
     '<svg',
     '<details',
-    '<table',
     'left at reset',
     '%/d',
     'aliases',
@@ -133,4 +139,155 @@ test('later refill markers draw vertical lines without pooled value dots', () =>
   );
   expect([...html.matchAll(/stroke-dasharray="4 4"/g)]).toHaveLength(2);
   expect([...html.matchAll(/<i /g)]).toHaveLength(2); // now and earliest refill only
+});
+
+const twoSeries = () => {
+  const samples = burnRateFixture('ready').samples.filter((sample) => sample.provider === 'xai');
+  return buildBurnRate(
+    [86400, 7 * 86400].flatMap((periodSeconds) =>
+      samples.map((sample) => ({ ...sample, limitId: 'requests', periodSeconds }))
+    ),
+    BURN_PREVIEW_NOW
+  );
+};
+
+test('closed recorded-values details mount no table rows for the 1154-row fixture', async () => {
+  await i18n.changeLanguage('en');
+  const groups = twoSeries();
+  expect(groups[0].history).toHaveLength(1153);
+  const timings: number[] = [];
+  let html = '';
+  for (let i = 0; i < 5; i++) {
+    const start = performance.now();
+    html = renderToStaticMarkup(
+      createElement(BurnRateChart, { groups, provider: 'xai', now: BURN_PREVIEW_NOW })
+    );
+    timings.push(performance.now() - start);
+  }
+  console.info(
+    'two-series, 1154-row fixture render ms:',
+    timings.map((ms) => ms.toFixed(2)).join(', ')
+  );
+  expect(html).toContain('<summary');
+  expect(html).not.toContain('<tr');
+  expect(html).not.toContain('<table');
+});
+
+test('hover updates are isolated from memoized recorded values and path geometry', () => {
+  // SSR cannot dispatch pointer events. Guard ownership and memo boundaries here;
+  // browser verification measures actual pointer updates with the table open and closed.
+  const source = readFileSync('src/features/quota/burnRate/BurnRateChart.tsx', 'utf8');
+  const hoverLayer = source.slice(source.indexOf('function HoverLayer('));
+  const chart = source.slice(
+    source.indexOf('export function BurnRateChart('),
+    source.indexOf('function HoverLayer(')
+  );
+  expect(chart).not.toContain('setHover');
+  expect(hoverLayer).toContain('setHover');
+  expect(source).toMatch(/const RecordedValues = memo\(/);
+  expect(source).toMatch(/const ChartGeometry = memo\(/);
+  expect(source).toContain('useMemo(');
+  expect(source).toContain('onToggle=');
+});
+
+test('duplicate limit labels show actual durations in legends and direct labels', async () => {
+  await i18n.changeLanguage('en');
+  const state = renderSamples([20, 30, 40]);
+  state.samples = [86400, 7 * 86400].flatMap((periodSeconds) =>
+    state.samples.map((sample) => ({ ...sample, limitId: 'requests', periodSeconds }))
+  );
+  const html = renderState(state);
+  expect(html.match(/Requests · 24h/g)).toHaveLength(2);
+  expect(html.match(/Requests · 168h/g)).toHaveLength(2);
+});
+
+function chartElements(node: ReactNode): ReactElement<Record<string, unknown>>[] {
+  const elements: ReactElement<Record<string, unknown>>[] = [];
+  Children.forEach(node, (child) => {
+    if (isValidElement<Record<string, unknown>>(child)) {
+      elements.push(child, ...chartElements(child.props.children as ReactNode));
+    }
+  });
+  return elements;
+}
+
+test('unchanged data preserves geometry element identity and memoized table props', () => {
+  const groups = twoSeries();
+  let firstGeometry: unknown;
+  let firstTable: ReactElement<Record<string, unknown>>;
+  let renders = 0;
+  function Harness() {
+    const [tick, setTick] = useState(0);
+    const tree = BurnRateChart({ groups, provider: 'xai', now: BURN_PREVIEW_NOW });
+    const elements = chartElements(tree);
+    const memoized = elements.filter(
+      (element) =>
+        typeof element.type === 'object' &&
+        element.type !== null &&
+        '$$typeof' in element.type &&
+        element.type.$$typeof === Symbol.for('react.memo')
+    );
+    const geometry = memoized.find((element) => 'now' in element.props);
+    const table = memoized.find((element) => !('now' in element.props))!;
+    renders++;
+    expect(geometry).toBeDefined();
+    expect(table).toBeDefined();
+    if (tick === 0) {
+      firstGeometry = geometry;
+      firstTable = table;
+      setTick(1);
+    } else {
+      expect(geometry).toBe(firstGeometry);
+      expect(table.type).toBe(firstTable.type);
+      expect(table.props).toEqual(firstTable.props);
+    }
+    return tree;
+  }
+  renderToStaticMarkup(createElement(Harness));
+  expect(renders).toBe(2);
+});
+
+function renderInteractedPart(part: 'HoverLayer' | 'RecordedValues') {
+  const groups = twoSeries();
+  let interacted = false;
+  function Harness() {
+    const tree = BurnRateChart({ groups, provider: 'xai', now: BURN_PREVIEW_NOW });
+    const element = chartElements(tree).find((element) => {
+      const type = element.type as unknown as { name?: string; type?: { name?: string } };
+      return (type.name ?? type.type?.name) === part;
+    })!;
+    const type = element.type as unknown as {
+      (props: Record<string, unknown>): ReactNode;
+      type?: (props: Record<string, unknown>) => ReactNode;
+    };
+    // Invoke the captured component in the SSR harness so React applies its state update.
+    const rendered = (type.type ?? type)(element.props);
+    if (!interacted) {
+      interacted = true;
+      const eventName = part === 'RecordedValues' ? 'onToggle' : 'onPointerMove';
+      const target = chartElements(rendered).find((element) => eventName in element.props)!;
+      const handler = target.props[eventName] as (event: unknown) => void;
+      handler({
+        clientX: 30,
+        currentTarget: { open: true, getBoundingClientRect: () => ({ left: 0, width: 100 }) },
+      });
+    }
+    return rendered;
+  }
+  return renderToStaticMarkup(createElement(Harness));
+}
+
+test('opening recorded values mounts the grid with duration-qualified column headers', async () => {
+  await i18n.changeLanguage('en');
+  const html = renderInteractedPart('RecordedValues');
+  expect(html.match(/<tr/g)).toHaveLength(1154);
+  expect(html).toContain('scope="col">Requests · 24h</th>');
+  expect(html).toContain('scope="col">Requests · 168h</th>');
+});
+
+test('hover tooltips distinguish identical limit names by their actual duration', async () => {
+  await i18n.changeLanguage('en');
+  const html = renderInteractedPart('HoverLayer');
+  expect(html).toContain('Requests · 24h:');
+  expect(html).toContain('Requests · 168h:');
 });

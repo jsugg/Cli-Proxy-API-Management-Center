@@ -100,14 +100,27 @@ function formatDurationUnit(value: number, unit: DurationUnit, locale: string): 
   return formatter.format(value);
 }
 
+/** Use one supported locale for the duration and its translated direction wrapper. */
+function resolveCountdownLocale(requested?: string): string {
+  for (const candidate of [requested, i18n.resolvedLanguage, 'en']) {
+    if (!candidate) continue;
+    try {
+      if (Intl.RelativeTimeFormat.supportedLocalesOf(candidate).length) return candidate;
+    } catch {
+      // Skip malformed tags as well as unsupported languages.
+    }
+  }
+  return 'en';
+}
+
 /** Truncated days + hours, hours + minutes, or minutes, with localized direction. */
 export function formatRelativeInstant(targetMs: number, nowMs: number, locale?: string): string {
   const gap = Math.abs(targetMs - nowMs);
-  if (gap < MINUTE_MS) return formatRelativeFreshness(targetMs, nowMs, locale);
-
-  const language = getRelativeFormatter(locale ?? i18n.resolvedLanguage).resolvedOptions().locale;
+  const language = resolveCountdownLocale(locale);
   const { value, unit } = relativeTimeParts(targetMs, nowMs);
-  const parts = [formatDurationUnit(Math.abs(value), unit, language)];
+  const parts = [
+    `${gap < MINUTE_MS ? '<' : ''}${formatDurationUnit(Math.abs(value), unit, language)}`,
+  ];
   const remainder =
     unit === 'day'
       ? Math.floor((gap % DAY_MS) / HOUR_MS)

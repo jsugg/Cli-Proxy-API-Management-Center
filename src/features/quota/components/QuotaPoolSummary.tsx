@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQuotaStore } from '@/stores/useQuotaStore';
 import { useNow } from '@/hooks/useNow';
 import { formatRelativeInstant } from '@/utils/quota';
 import type { QuotaFileEntry } from '../logic';
 import type { QuotaCardState } from '../providers';
-import { buildQuotaPools } from '../pool';
+import { buildQuotaPools, type QuotaPoolWindowMemory } from '../pool';
 import styles from './QuotaPoolSummary.module.scss';
 
 interface QuotaPoolSummaryProps {
@@ -20,7 +21,45 @@ export function QuotaPoolSummary({ entries, quotaFor, now: fixedNow }: QuotaPool
   // A response can arrive after the shared clock's last minute tick.
   useEffect(() => setReceiptTime(Date.now()), [entries, quotaFor]);
   const now = fixedNow ?? Math.max(tick, receiptTime);
-  const pools = buildQuotaPools(entries, quotaFor, now);
+  const session = useQuotaStore((state) => state.cacheGeneration);
+  const [remembered, setRemembered] = useState<{
+    session: number;
+    windows: QuotaPoolWindowMemory;
+  }>({ session, windows: {} });
+  const pools = useMemo(
+    () =>
+      buildQuotaPools(
+        entries,
+        quotaFor,
+        now,
+        remembered.session === session ? remembered.windows : {}
+      ),
+    [entries, quotaFor, now, remembered, session]
+  );
+  useEffect(() => {
+    setRemembered((previous) => {
+      const windows = previous.session === session ? { ...previous.windows } : {};
+      for (const pool of pools) {
+        const hasSuccess = entries.some((entry) => {
+          if (entry.type !== pool.provider || entry.file.disabled) return false;
+          const state = quotaFor(entry);
+          return state?.status === 'success';
+        });
+        if (hasSuccess) {
+          windows[pool.provider] = pool.windows.map(({ id, label, labelKey, periodHours }) => ({
+            id,
+            label,
+            labelKey,
+            periodHours,
+          }));
+        }
+      }
+      return previous.session === session &&
+        JSON.stringify(previous.windows) === JSON.stringify(windows)
+        ? previous
+        : { session, windows };
+    });
+  }, [entries, quotaFor, pools, session]);
   if (!pools.length) return null;
   return (
     <section aria-label={t('quota_pool.title')}>

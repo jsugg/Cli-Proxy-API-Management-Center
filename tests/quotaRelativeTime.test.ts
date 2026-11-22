@@ -11,6 +11,7 @@ import {
   formatRelativeInstant,
   relativeTimeParts,
 } from '@/utils/quota';
+import i18n from '@/i18n';
 import { DAY_MS, HOUR_MS, MINUTE_MS } from '@/utils/time/durations';
 
 const NOW = new Date(2026, 7, 2, 12, 0, 0).getTime();
@@ -66,10 +67,42 @@ describe('formatRelativeInstant', () => {
     expect(formatRelativeInstant(NOW - gap, NOW, 'en')).toBe(`${duration} ago`);
   });
 
-  test('preserves sub-minute wording without a zero-minute countdown', () => {
-    expect(formatRelativeInstant(NOW + 59_999, NOW, 'en')).toBe('in 1 minute');
-    expect(formatRelativeInstant(NOW, NOW, 'en')).toBe('in 1 minute');
-    expect(formatRelativeInstant(NOW - 1, NOW, 'en')).toBe('1 minute ago');
+  test('uses compact less-than-one-minute countdowns in both directions', () => {
+    expect(formatRelativeInstant(NOW + 59_999, NOW, 'en')).toBe('in <1m');
+    expect(formatRelativeInstant(NOW, NOW, 'en')).toBe('in <1m');
+    expect(formatRelativeInstant(NOW - 1, NOW, 'en')).toBe('<1m ago');
+  });
+
+  test('defaults sub-minute and longer countdowns to the resolved app language', () => {
+    const previous = i18n.resolvedLanguage;
+    i18n.resolvedLanguage = 'vi';
+    try {
+      for (const gap of [30_000, MINUTE_MS, DAY_MS]) {
+        expect(formatRelativeInstant(NOW + gap, NOW)).toBe(
+          formatRelativeInstant(NOW + gap, NOW, 'vi')
+        );
+      }
+    } finally {
+      i18n.resolvedLanguage = previous;
+    }
+  });
+
+  test('uses one app locale for invalid or unsupported requested locales', () => {
+    const previous = i18n.resolvedLanguage;
+    i18n.resolvedLanguage = 'vi';
+    try {
+      for (const locale of ['not-a-locale!!', 'zz-ZZ']) {
+        for (const gap of [DAY_MS, MINUTE_MS, 30_000]) {
+          expect(formatRelativeInstant(NOW + gap, NOW, locale)).toBe(
+            formatRelativeInstant(NOW + gap, NOW, 'vi')
+          );
+        }
+      }
+      i18n.resolvedLanguage = 'not-a-locale!!';
+      expect(formatRelativeInstant(NOW + DAY_MS, NOW, 'zz-ZZ')).toBe('in 1d');
+    } finally {
+      i18n.resolvedLanguage = previous;
+    }
   });
 
   test.each([

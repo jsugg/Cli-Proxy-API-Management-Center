@@ -98,3 +98,14 @@ test('new observations advance the summary clock between minute ticks', () => {
   expect(source).toContain('setReceiptTime(Date.now())');
   expect(source).toContain('Math.max(tick, receiptTime)');
 });
+
+test('summary scopes remembered provider windows to the quota cache session', () => {
+  const source = readFileSync(
+    new URL('../src/features/quota/components/QuotaPoolSummary.tsx', import.meta.url),
+    'utf8'
+  );
+  expect(source).toContain('state.cacheGeneration');
+  expect(source).toContain('remembered.session === session ? remembered.windows : {}');
+  expect(source).toContain('previous.session === session');
+  expect(source).toContain("state?.status === 'success'");
+});

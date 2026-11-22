@@ -65,6 +65,29 @@ describe('quota pool summaries', () => {
     }
   );
 
+  test.each(['claude', 'codex'] as const)(
+    '%s retains only remembered reported limits as unknown during refresh',
+    (provider) => {
+      const entries = [{ type: provider, file: { name: 'a', type: provider } }];
+      const windows = [{ ...quota(20).windows[0], id: 'weekly-only' }];
+      const previous = buildQuotaPools(entries, () => quota(20, { windows }), now)[0];
+      const remembered = { [provider]: previous.windows };
+      const snapshot = JSON.stringify(remembered);
+      const loading = () => quota(null, { status: 'loading', windows: [] });
+      const pool = buildQuotaPools(entries, loading, now, remembered)[0];
+      expect(pool.total).toBe(1);
+      expect(pool.windows).toEqual([
+        { ...previous.windows[0], known: 0, remainingPercent: null, nextResetAtMs: null },
+      ]);
+      expect(JSON.stringify(remembered)).toBe(snapshot);
+      expect(buildQuotaPools(entries, loading, now, { [provider]: [] })[0].windows).toEqual([]);
+      expect(buildQuotaPools(entries, loading, now)[0].windows).toHaveLength(2);
+      expect(
+        buildQuotaPools(entries, () => quota(20, { windows: [] }), now, remembered)[0].windows
+      ).toEqual([]);
+    }
+  );
+
   test('one reported short window retains coverage of all three enabled credentials', () => {
     const short = { ...quota(20).windows[0], id: 'five-hour', periodHours: 5 };
     const pool = buildQuotaPools(

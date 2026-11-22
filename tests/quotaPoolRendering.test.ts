@@ -45,6 +45,37 @@ test('loaded summaries omit absent limits while retaining reported unknown limit
   expect(markup).toContain('0/3');
 });
 
+test('loaded limit labels follow a language switch', async () => {
+  const render = () =>
+    renderToStaticMarkup(
+      createElement(QuotaPoolSummary, {
+        entries: [{ type: 'claude' as const, file: { name: 'a' } }],
+        quotaFor: () => ({
+          status: 'success',
+          windows: [
+            {
+              id: 'seven-day',
+              label: 'Fetched in English',
+              labelKey: 'claude_quota.seven_day',
+              usedPercent: 20,
+              periodHours: 168,
+              resetLabel: '',
+            },
+          ],
+        }),
+        now: Date.now(),
+      })
+    );
+  try {
+    await i18n.changeLanguage('zh-CN');
+    const markup = render();
+    expect(markup).toContain(i18n.t('claude_quota.seven_day'));
+    expect(markup).not.toContain('Fetched in English');
+  } finally {
+    await i18n.changeLanguage('en');
+  }
+});
+
 test('timeline masks email identities by default, including titles', () => {
   const now = Date.now();
   const markup = renderToStaticMarkup(

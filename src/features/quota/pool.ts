@@ -9,6 +9,7 @@ export interface QuotaPoolWindow {
   id: string;
   label: string;
   labelKey?: string;
+  labelParams?: Record<string, string | number>;
   periodHours: number | null;
   known: number;
   remainingPercent: number | null;
@@ -21,7 +22,10 @@ export interface QuotaPool {
   windows: QuotaPoolWindow[];
 }
 
-export type QuotaPoolWindowIdentity = Pick<QuotaPoolWindow, 'id' | 'label' | 'labelKey'> & {
+export type QuotaPoolWindowIdentity = Pick<
+  QuotaPoolWindow,
+  'id' | 'label' | 'labelKey' | 'labelParams'
+> & {
   periodHours?: number | null;
 };
 export type QuotaPoolWindowMemory = Partial<
@@ -59,6 +63,7 @@ export function buildQuotaPools(
           id: window.id,
           label: window.label,
           labelKey: window.labelKey,
+          labelParams: window.labelParams,
           periodHours,
           known: 0,
           remainingPercent: null,

@@ -46,12 +46,15 @@ export function QuotaPoolSummary({ entries, quotaFor, now: fixedNow }: QuotaPool
           return state?.status === 'success';
         });
         if (hasSuccess) {
-          windows[pool.provider] = pool.windows.map(({ id, label, labelKey, periodHours }) => ({
-            id,
-            label,
-            labelKey,
-            periodHours,
-          }));
+          windows[pool.provider] = pool.windows.map(
+            ({ id, label, labelKey, labelParams, periodHours }) => ({
+              id,
+              label,
+              labelKey,
+              labelParams,
+              periodHours,
+            })
+          );
         }
       }
       return previous.session === session &&
@@ -74,7 +77,10 @@ export function QuotaPoolSummary({ entries, quotaFor, now: fixedNow }: QuotaPool
               <div className={styles.limit} key={JSON.stringify([window.id, window.periodHours])}>
                 <div className={styles.heading}>
                   <span>
-                    {window.label || (window.labelKey ? t(window.labelKey) : window.id)}
+                    {/* Translate at render time so a language switch relabels loaded rows. */}
+                    {window.labelKey
+                      ? t(window.labelKey, window.labelParams)
+                      : window.label || window.id}
                     {window.periodHours !== null &&
                       ` · ${t('quota_pool.period', { hours: window.periodHours })}`}
                   </span>

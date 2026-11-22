@@ -1,4 +1,4 @@
-import type { ClaudeQuotaState, ClaudeQuotaWindow, CodexQuotaState } from '@/types';
+import type { ClaudeQuotaState, CodexQuotaState } from '@/types';
 import { getQuotaCacheKey } from '@/utils/quota/identity';
 import type { QuotaFileEntry } from './logic';
 import type { QuotaCardState } from './providers';
@@ -9,6 +9,7 @@ export interface QuotaPoolWindow {
   id: string;
   label: string;
   labelKey?: string;
+  labelParams?: Record<string, string | number>;
   periodHours: number | null;
   known: number;
   remainingPercent: number | null;
@@ -21,11 +22,22 @@ export interface QuotaPool {
   windows: QuotaPoolWindow[];
 }
 
+export type QuotaPoolWindowIdentity = Pick<
+  QuotaPoolWindow,
+  'id' | 'label' | 'labelKey' | 'labelParams'
+> & {
+  periodHours?: number | null;
+};
+export type QuotaPoolWindowMemory = Partial<
+  Record<QuotaPool['provider'], readonly QuotaPoolWindowIdentity[]>
+>;
+
 /** Compare independent limits using unweighted percentages, never token capacity. */
 export function buildQuotaPools(
   entries: readonly QuotaFileEntry[],
   quotaFor: (entry: QuotaFileEntry) => QuotaCardState | undefined,
-  now: number
+  now: number,
+  rememberedWindows: QuotaPoolWindowMemory = {}
 ): QuotaPool[] {
   return (['claude', 'codex'] as const).flatMap((provider) => {
     const seen = new Set<string>();
@@ -37,7 +49,7 @@ export function buildQuotaPools(
     });
     if (!accounts.length) return [];
     const groups = new Map<string, QuotaPoolWindow>();
-    const ensureWindow = (window: ClaudeQuotaWindow): QuotaPoolWindow => {
+    const ensureWindow = (window: QuotaPoolWindowIdentity): QuotaPoolWindow => {
       const periodHours =
         typeof window.periodHours === 'number' &&
         Number.isFinite(window.periodHours) &&
@@ -51,6 +63,7 @@ export function buildQuotaPools(
           id: window.id,
           label: window.label,
           labelKey: window.labelKey,
+          labelParams: window.labelParams,
           periodHours,
           known: 0,
           remainingPercent: null,
@@ -60,23 +73,34 @@ export function buildQuotaPools(
       }
       return group;
     };
-    for (const [id, periodHours, labelKey] of [
-      [
-        'five-hour',
-        5,
-        provider === 'claude' ? 'claude_quota.five_hour' : 'codex_quota.primary_window',
-      ],
-      [
-        provider === 'claude' ? 'seven-day' : 'weekly',
-        168,
-        provider === 'claude' ? 'claude_quota.seven_day' : 'codex_quota.secondary_window',
-      ],
-    ] as const) {
-      ensureWindow({ id, periodHours, label: '', labelKey, usedPercent: null, resetLabel: '' });
+    const states = accounts.map(
+      (account) => quotaFor(account) as ClaudeQuotaState | CodexQuotaState | undefined
+    );
+    const loadedStates = states.filter(
+      (state): state is ClaudeQuotaState | CodexQuotaState => state?.status === 'success'
+    );
+    // Until the first successful load, retain the usual unknown rows. After that,
+    // only provider-reported windows define which limits exist.
+    const remembered = rememberedWindows[provider];
+    if (!loadedStates.length && states.some((state) => state?.status === 'loading') && remembered) {
+      remembered.forEach(ensureWindow);
+    } else if (!loadedStates.length) {
+      for (const [id, periodHours, labelKey] of [
+        [
+          'five-hour',
+          5,
+          provider === 'claude' ? 'claude_quota.five_hour' : 'codex_quota.primary_window',
+        ],
+        [
+          provider === 'claude' ? 'seven-day' : 'weekly',
+          168,
+          provider === 'claude' ? 'claude_quota.seven_day' : 'codex_quota.secondary_window',
+        ],
+      ] as const) {
+        ensureWindow({ id, periodHours, label: '', labelKey });
+      }
     }
-    for (const account of accounts) {
-      const state = quotaFor(account) as ClaudeQuotaState | CodexQuotaState | undefined;
-      if (!state) continue;
+    for (const state of loadedStates) {
       const observedAt = Date.parse(state.observedAt ?? '');
       const fresh =
         state.status === 'success' &&

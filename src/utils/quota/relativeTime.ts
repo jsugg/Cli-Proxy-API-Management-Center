@@ -1,16 +1,6 @@
-/**
- * Relative time beside absolute time.
- *
- * A quota card used to say `08-13 14:30` and leave the arithmetic to the
- * reader. The absolute instant is what you need to plan around; the relative
- * one ("in 11 days") is what you need to *react* to. Showing both costs one
- * short span and removes the mental subtraction, so every date on a card now
- * carries its own countdown.
- *
- * Pure and clock-free — `nowMs` is always passed in, so every case is directly
- * testable and the caller decides how often it ticks (see `useNow`).
- */
+/** Relative countdowns beside unchanged absolute timestamps. */
 
+import i18n from '@/i18n';
 import { DAY_MS, HOUR_MS, MINUTE_MS } from '@/utils/time/durations';
 
 export interface RelativeTimeParts {
@@ -67,10 +57,85 @@ function getRelativeFormatter(locale?: string): Intl.RelativeTimeFormat {
   return formatter;
 }
 
-/** Localized relative phrase, e.g. `in 11 days` / `11 天后` / `11 days ago`. */
-export function formatRelativeInstant(targetMs: number, nowMs: number, locale?: string): string {
+/** Coarse observation age; freshness labels deliberately keep their existing wording. */
+export function formatRelativeFreshness(targetMs: number, nowMs: number, locale?: string): string {
   const { value, unit } = relativeTimeParts(targetMs, nowMs);
   return getRelativeFormatter(locale).format(value, unit);
+}
+
+type DurationUnit = 'day' | 'hour' | 'minute';
+type Duration = Partial<Record<'days' | 'hours' | 'minutes', number>>;
+interface DurationFormatter {
+  format(duration: Duration): string;
+}
+
+// DurationFormat is not available in every supported browser or TypeScript Intl library.
+type DurationFormatterConstructor = new (
+  locale: string,
+  options: { style: 'narrow' | 'short' }
+) => DurationFormatter;
+
+const durationFormatters = new Map<string, DurationFormatter>();
+const unitFormatters = new Map<string, Intl.NumberFormat>();
+
+function formatDurationUnit(value: number, unit: DurationUnit, locale: string): string {
+  const DurationFormat = (Intl as typeof Intl & { DurationFormat?: DurationFormatterConstructor })
+    .DurationFormat;
+  const style = locale.split('-')[0] === 'vi' ? 'short' : 'narrow';
+  if (DurationFormat) {
+    let formatter = durationFormatters.get(locale);
+    if (!formatter) {
+      formatter = new DurationFormat(locale, { style });
+      durationFormatters.set(locale, formatter);
+    }
+    return formatter.format({ [`${unit}s`]: value });
+  }
+
+  const key = `${locale}:${unit}`;
+  let formatter = unitFormatters.get(key);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, { style: 'unit', unit, unitDisplay: style });
+    unitFormatters.set(key, formatter);
+  }
+  return formatter.format(value);
+}
+
+/** Use one supported locale for the duration and its translated direction wrapper. */
+function resolveCountdownLocale(requested?: string): string {
+  for (const candidate of [requested, i18n.resolvedLanguage, 'en']) {
+    if (!candidate) continue;
+    try {
+      if (Intl.RelativeTimeFormat.supportedLocalesOf(candidate).length) return candidate;
+    } catch {
+      // Skip malformed tags as well as unsupported languages.
+    }
+  }
+  return 'en';
+}
+
+/** Truncated days + hours, hours + minutes, or minutes, with localized direction. */
+export function formatRelativeInstant(targetMs: number, nowMs: number, locale?: string): string {
+  const gap = Math.abs(targetMs - nowMs);
+  const language = resolveCountdownLocale(locale);
+  const { value, unit } = relativeTimeParts(targetMs, nowMs);
+  const parts = [
+    `${gap < MINUTE_MS ? '<' : ''}${formatDurationUnit(Math.abs(value), unit, language)}`,
+  ];
+  const remainder =
+    unit === 'day'
+      ? Math.floor((gap % DAY_MS) / HOUR_MS)
+      : unit === 'hour'
+        ? Math.floor((gap % HOUR_MS) / MINUTE_MS)
+        : 0;
+  if (remainder) {
+    parts.push(formatDurationUnit(remainder, unit === 'day' ? 'hour' : 'minute', language));
+  }
+
+  // A fixed separator keeps native DurationFormat and NumberFormat fallback output alike.
+  return i18n.t(
+    targetMs < nowMs ? 'quota_management.relative_past' : 'quota_management.relative_future',
+    { lng: language, duration: parts.join(' ') }
+  );
 }
 
 /**

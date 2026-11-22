@@ -403,7 +403,7 @@ export function QuotaPage() {
         glance={layout === 'compact' ? !expandedCards.has(key) : undefined}
         onToggleGlance={() => toggleExpandedCard(key)}
         onRefresh={() => void refreshQuota(entry.file, QUOTA_ADAPTERS[entry.type])}
-        onReset={() => resetQuota(entry.file, QUOTA_ADAPTERS[entry.type])}
+        onReset={(creditId) => resetQuota(entry.file, QUOTA_ADAPTERS[entry.type], creditId)}
       />
     );
   };
@@ -487,8 +487,8 @@ export function QuotaPage() {
         </div>
 
         <QuotaHistoryPanel
-          enabled={tab === 'all' || tab === 'claude' || tab === 'codex'}
-          provider={tab === 'claude' || tab === 'codex' ? tab : undefined}
+          enabled={true}
+          provider={tab === 'all' ? undefined : tab}
           entries={filesGeneration === sessionGeneration ? entries : []}
           showEmails={showEmails}
         />

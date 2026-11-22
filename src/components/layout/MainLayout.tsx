@@ -27,6 +27,7 @@ import {
   IconSidebarProviders,
   IconSidebarQuickStart,
   IconSidebarQuota,
+  IconSidebarBurnRate,
   IconSidebarRouting,
   IconSidebarSystem,
   IconChevronDown,
@@ -61,6 +62,7 @@ const sidebarIcons: Record<string, ReactNode> = {
   authFiles: <IconSidebarAuthFiles size={18} />,
   oauth: <IconSidebarOauth size={18} />,
   quota: <IconSidebarQuota size={18} />,
+  burnRate: <IconSidebarBurnRate size={18} />,
   routing: <IconSidebarRouting size={18} />,
   plugins: <IconSidebarPlugins size={18} />,
   config: <IconSidebarConfig size={18} />,
@@ -653,6 +655,12 @@ export function MainLayout() {
           labelKey: 'nav.quota_management',
           metaKey: 'nav_meta.quota_management',
           icon: sidebarIcons.quota,
+        },
+        {
+          path: '/burn-rate',
+          labelKey: 'nav.burn_rate',
+          metaKey: 'nav_meta.burn_rate',
+          icon: sidebarIcons.burnRate,
         },
         {
           path: '/logs',

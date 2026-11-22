@@ -44,6 +44,11 @@ export interface QuotaStore {
   clearQuotaCache: () => void;
 }
 
+/** Omitting `creditId` lets the provider choose which banked reset to spend. */
+export interface QuotaResetOptions {
+  creditId?: string;
+}
+
 export interface QuotaProviderData<TState, TData> {
   type: QuotaProviderType;
   i18nPrefix: string;
@@ -51,7 +56,7 @@ export interface QuotaProviderData<TState, TData> {
   fetchQuota: (file: AuthFileItem, t: TFunction) => Promise<TData>;
   /** Optional details loaded only after the primary quota has been committed. */
   enrichQuota?: (file: AuthFileItem, data: TData, t: TFunction) => Promise<TData>;
-  resetQuota?: (file: AuthFileItem, t: TFunction) => Promise<TData>;
+  resetQuota?: (file: AuthFileItem, t: TFunction, options?: QuotaResetOptions) => Promise<TData>;
   canResetQuota?: (quota: TState) => boolean;
   storeSelector: (state: QuotaStore) => Record<string, TState>;
   storeSetter: keyof QuotaStore;

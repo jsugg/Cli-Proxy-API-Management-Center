@@ -11,6 +11,11 @@ export const HISTORY_MAX_PAGES = 12;
 /** Floor for automatic refreshes; the collector's own poll interval is used when longer. */
 export const HISTORY_REFRESH_MS = 60_000;
 export const HISTORY_MAX_RANGE_MS = 7 * 86_400_000;
+/**
+ * Incremental refreshes re-read this much of the previous range: a collector cycle can
+ * persist observations stamped slightly before the last read finished.
+ */
+export const HISTORY_REFRESH_OVERLAP_MS = 15 * 60_000;
 
 export interface QuotaHistoryState {
   status: 'loading' | 'ready' | 'unsupported' | 'error';
@@ -33,6 +38,39 @@ interface HistorySessionOptions {
   rangeMs: number;
   isCurrent: () => boolean;
   now?: () => number;
+  /** Page budget per load; defaults to HISTORY_MAX_PAGES. */
+  maxPages?: number;
+  /** Follow every cursor up to `maxPages` instead of waiting for Load more. */
+  loadAll?: boolean;
+  /** Refresh a complete snapshot by reading only the newest observations. */
+  incremental?: boolean;
+}
+
+const sampleKey = (sample: QuotaHistorySample): string =>
+  JSON.stringify([
+    sample.provider,
+    sample.accountId,
+    sample.authIndex,
+    sample.limitId,
+    sample.periodSeconds,
+    sample.seriesId,
+    sample.observedAt,
+    sample.state,
+    sample.usedPercent,
+    sample.resetAt,
+  ]);
+
+/** Merge overlapping reads; identical observations collapse, order stays chronological. */
+export function mergeHistorySamples(
+  previous: readonly QuotaHistorySample[],
+  next: readonly QuotaHistorySample[],
+  from: number
+): QuotaHistorySample[] {
+  const merged = new Map<string, QuotaHistorySample>();
+  for (const sample of [...previous, ...next]) {
+    if (sample.observedAt >= from) merged.set(sampleKey(sample), sample);
+  }
+  return [...merged.values()].sort((a, b) => a.observedAt - b.observedAt);
 }
 
 export const initialHistoryState = (): QuotaHistoryState => ({
@@ -89,7 +127,7 @@ export class QuotaHistorySession {
     if (this.pending || !this.current()) return;
     this.pending = true;
     this.abort = new AbortController();
-    const targetPages = Math.max(1, this.state.pages);
+    const targetPages = this.options.loadAll ? this.maxPages : Math.max(1, this.state.pages);
     const previous = this.state.status === 'ready' ? this.state : null;
     const previousQuery = this.query;
     const previousCursors = new Set(this.cursors);
@@ -109,6 +147,20 @@ export class QuotaHistorySession {
         limit: Math.min(capabilities.maxPageSize, 2000),
       };
       this.cursors.clear();
+      if (
+        this.options.incremental &&
+        previous?.complete &&
+        this.query.from >= previous.from &&
+        previous.to > this.query.from
+      ) {
+        const delta = await this.readDelta(this.query, previous.to, capabilities);
+        if (!this.current()) return;
+        if (delta) {
+          this.publish(delta);
+          return;
+        }
+        this.cursors.clear();
+      }
       let state: QuotaHistoryState = {
         ...initialHistoryState(),
         ...this.query,
@@ -174,8 +226,45 @@ export class QuotaHistorySession {
       samples: [...state.samples, ...page.samples],
       nextCursor: page.nextCursor,
       complete: page.nextCursor === null,
-      capped: page.nextCursor !== null && pages >= HISTORY_MAX_PAGES,
+      capped: page.nextCursor !== null && pages >= this.maxPages,
     };
+  }
+
+  private get maxPages(): number {
+    return this.options.maxPages ?? HISTORY_MAX_PAGES;
+  }
+
+  /** Read only observations newer than the previous snapshot; null asks for a full reload. */
+  private async readDelta(
+    range: QuotaHistoryQuery,
+    previousTo: number,
+    capabilities: QuotaHistoryCapabilities
+  ): Promise<QuotaHistoryState | null> {
+    const full = this.query;
+    this.query = { ...range, from: Math.max(range.from, previousTo - HISTORY_REFRESH_OVERLAP_MS) };
+    try {
+      let delta: QuotaHistoryState = { ...initialHistoryState(), capabilities, busy: true };
+      do {
+        delta = await this.readPage(delta);
+        if (!this.current()) return null;
+      } while (delta.nextCursor !== null && !delta.capped);
+      if (!delta.complete) return null;
+      const samples = mergeHistorySamples(this.state.samples, delta.samples, range.from);
+      // Rolling snapshots must keep the same memory bound as a full load.
+      if (samples.length > this.maxPages * Math.min(capabilities.maxPageSize, 2000)) return null;
+      return {
+        ...this.state,
+        capabilities,
+        samples,
+        from: range.from,
+        to: range.to,
+        status: 'ready',
+        busy: false,
+        refreshFailed: false,
+      };
+    } finally {
+      this.query = full;
+    }
   }
 
   private fail(error: unknown): void {

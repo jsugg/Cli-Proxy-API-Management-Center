@@ -44,6 +44,11 @@
   }
 }
 
+li.selected {
+  outline: 1px solid var(--primary-color);
+  font-weight: 600;
+}
+
 .when {
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;

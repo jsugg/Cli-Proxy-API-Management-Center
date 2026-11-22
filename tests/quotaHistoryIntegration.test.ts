@@ -4,8 +4,11 @@ import { readFileSync } from 'node:fs';
 test('quota route follows provider tabs and privacy, while the preview uses synthetic history', () => {
   const page = readFileSync('src/features/quota/QuotaPage.tsx', 'utf8');
   expect(page).toContain('<QuotaHistoryPanel');
-  expect(page).toContain("tab === 'claude' || tab === 'codex'");
-  expect(page).toContain("tab === 'all' || tab === 'claude' || tab === 'codex'");
+  expect(page).toContain("provider={tab === 'all' ? undefined : tab}");
+  expect(page).toContain('enabled={true}');
+  expect(readFileSync('src/features/quota/history/QuotaHistoryPanel.tsx', 'utf8')).toContain(
+    "provider && state.status === 'unsupported'"
+  );
   const hook = readFileSync('src/features/quota/history/useQuotaHistory.ts', 'utf8');
   expect(hook).toContain('snapshot?.owner === owner');
   expect(hook).toContain('session.dispose()');
@@ -33,4 +36,10 @@ test('all locales carry matching history keys and interpolation variables', () =
       );
     }
   }
+});
+
+test('quota preview supplies synthetic reset credits for checking the real per-credit buttons', () => {
+  const source = readFileSync('src/features/quota/preview/QuotaTierPreview.tsx', 'utf8');
+  expect(source).toContain('rateLimitResetCreditsAvailableCount: 2');
+  expect(source).toContain('synthetic-reset-');
 });

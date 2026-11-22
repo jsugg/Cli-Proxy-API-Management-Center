@@ -40,7 +40,7 @@ import {
   isDisabledAuthFile,
 } from '@/utils/quota';
 import { normalizeAuthIndex } from '@/utils/authIndex';
-import type { QuotaProviderData } from '../types';
+import type { QuotaProviderData, QuotaResetOptions } from '../types';
 
 const CODEX_OPTIONAL_REQUEST_TIMEOUT_MS = 8000;
 
@@ -494,7 +494,8 @@ const createCodexRedeemRequestId = (): string => {
 
 const consumeCodexRateLimitResetCredit = async (
   file: AuthFileItem,
-  t: TFunction
+  t: TFunction,
+  creditId?: string
 ): Promise<string> => {
   const rawAuthIndex = file['auth_index'] ?? file.authIndex;
   const authIndex = normalizeAuthIndex(rawAuthIndex);
@@ -511,6 +512,7 @@ const consumeCodexRateLimitResetCredit = async (
     header: requestHeader,
     data: JSON.stringify({
       redeem_request_id: createCodexRedeemRequestId(),
+      ...(creditId ? { credit_id: creditId } : {}),
     }),
   });
 
@@ -524,9 +526,13 @@ const consumeCodexRateLimitResetCredit = async (
   return authIndex;
 };
 
-const resetCodexQuota = async (file: AuthFileItem, t: TFunction): Promise<CodexQuotaData> => {
+const resetCodexQuota = async (
+  file: AuthFileItem,
+  t: TFunction,
+  options?: QuotaResetOptions
+): Promise<CodexQuotaData> => {
   const assertConnection = guardConfigConnection();
-  const authIndex = await consumeCodexRateLimitResetCredit(file, t);
+  const authIndex = await consumeCodexRateLimitResetCredit(file, t, options?.creditId);
   try {
     // Refresh provider quota on the initiating connection after redemption.
     assertConnection();

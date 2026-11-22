@@ -8,10 +8,18 @@ import { anyWindowExhausted, automaticRenewals, sortByExpiry } from './resetSema
 import styles from './ResetExplainer.module.scss';
 
 /**
- * Body of the Codex manual-reset confirmation. The consume endpoint takes no credit
- * id, so the dialog says plainly that OpenAI picks the credit rather than implying a choice.
+ * Body of the Codex manual-reset confirmation. With a `creditId` the consume call names that
+ * credit; without one OpenAI picks, and the dialog says so rather than implying a choice.
  */
-export function CodexResetConfirmation({ quota, name }: { quota: CodexQuotaState; name: string }) {
+export function CodexResetConfirmation({
+  quota,
+  name,
+  creditId,
+}: {
+  quota: CodexQuotaState;
+  name: string;
+  creditId?: string;
+}) {
   const { t } = useTranslation();
   const now = useNow();
   const windows = quota.windows ?? [];
@@ -19,6 +27,7 @@ export function CodexResetConfirmation({ quota, name }: { quota: CodexQuotaState
   const credits = sortByExpiry(
     (quota.rateLimitResetCredits ?? []).map((credit, index) => ({
       key: credit.id || `credit-${index}`,
+      selected: Boolean(creditId) && credit.id === creditId,
       expiresAtMs: parseIsoToMs(credit.expiresAt),
     }))
   );
@@ -37,12 +46,24 @@ export function CodexResetConfirmation({ quota, name }: { quota: CodexQuotaState
       </section>
       <section className={styles.section}>
         <h4 className={styles.heading}>{t('quota_reset.which_heading', { timezone })}</h4>
-        <p className={styles.muted}>{t('quota_reset.codex_which')}</p>
+        <p className={styles.muted}>
+          {t(creditId ? 'quota_reset.codex_which_selected' : 'quota_reset.codex_which')}
+        </p>
         {credits.length > 0 && (
           <ul className={styles.list}>
             {credits.map((credit) => (
-              <li key={credit.key}>
-                <span>{t('quota_reset.manual_reset')}</span>
+              <li
+                key={credit.key}
+                className={credit.selected ? styles.selected : undefined}
+                aria-current={credit.selected ? 'true' : undefined}
+              >
+                <span>
+                  {t(
+                    credit.selected
+                      ? 'quota_reset.manual_reset_selected'
+                      : 'quota_reset.manual_reset'
+                  )}
+                </span>
                 <span className={styles.when}>
                   {credit.expiresAtMs === null
                     ? t('claude_reset.expiry_unknown')

@@ -90,3 +90,26 @@ describe('Codex reset gateway cooldown', () => {
     expect(clear).not.toHaveBeenCalled();
   });
 });
+
+describe('Codex reset credit selection', () => {
+  const consumeBody = (request: ReturnType<typeof setup>['request']) => {
+    const call = request.mock.calls.find(
+      ([payload]) => payload.url === CODEX_RATE_LIMIT_RESET_CREDITS_CONSUME_URL
+    );
+    return JSON.parse(String(call?.[0].data)) as Record<string, unknown>;
+  };
+
+  test('names the chosen credit when one is selected', async () => {
+    const { request } = setup({ code: 'reset' });
+    await CODEX_CONFIG.resetQuota!(file, t, { creditId: 'credit-123' });
+    const body = consumeBody(request);
+    expect(body.credit_id).toBe('credit-123');
+    expect(typeof body.redeem_request_id).toBe('string');
+  });
+
+  test('lets OpenAI choose when no credit is selected', async () => {
+    const { request } = setup({ code: 'reset' });
+    await reset();
+    expect('credit_id' in consumeBody(request)).toBe(false);
+  });
+});

@@ -82,7 +82,7 @@ export function useQuotaActions(
   );
 
   const resetQuota = useCallback(
-    (file: AuthFileItem, adapter: QuotaAdapter) => {
+    (file: AuthFileItem, adapter: QuotaAdapter, creditId?: string) => {
       const resetQuotaFn = adapter.resetQuota;
       if (!resetQuotaFn) return;
       if (disableControls || file.disabled) return;
@@ -93,7 +93,7 @@ export function useQuotaActions(
 
       showConfirmation({
         title: t('codex_quota.reset_confirm_title'),
-        message: resetConfirmationMessage(t, currentQuota, labelForFile(file)),
+        message: resetConfirmationMessage(t, currentQuota, labelForFile(file), creditId),
         confirmText: t('codex_quota.reset_confirm_button'),
         variant: 'primary',
         onConfirm: async () => {
@@ -101,7 +101,7 @@ export function useQuotaActions(
           const setQuota = getQuotaSetter(adapter);
           setResettingQuotaName(cacheKey);
           try {
-            const data = await resetQuotaFn(file, t);
+            const data = await resetQuotaFn(file, t, creditId ? { creditId } : undefined);
             commitIfQuotaCacheCurrent(cacheGeneration, () => {
               setQuota((prev) => ({
                 ...prev,

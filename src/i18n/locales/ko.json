@@ -92,6 +92,7 @@
   },
   "quota_pool": {
     "title": "제공업체별 남은 할당량",
+    "accounts_one": "활성 인증 정보 {{count}}개",
     "accounts": "활성 인증 정보 {{count}}개",
     "unknown": "알 수 없음",
     "coverage": "관측 {{known}}/{{total}}",
@@ -100,7 +101,11 @@
     "period": "{{hours}}시간",
     "show_emails": "이메일 표시",
     "hide_emails": "이메일 숨기기",
-    "explanation": "모든 활성 인증 정보의 한도와 기간별 남은 비율을 가중치 없이 평균한 값이며 토큰 총량이 아닙니다. 요금제별 가중치를 적용하지 않습니다. 누락, 실패, 초기화 시점 경과 또는 15분이 지난 관측은 제외합니다. 계정을 새로고침하여 갱신하세요."
+    "explanation": "모든 활성 인증 정보의 한도와 기간별 남은 비율을 가중치 없이 평균한 값이며 토큰 총량이 아닙니다. 요금제별 가중치를 적용하지 않습니다. 누락, 실패, 초기화 시점 경과 또는 15분이 지난 관측은 제외합니다. 계정을 새로고침하여 갱신하세요. GitHub Copilot은 무제한 시트를 따로 세고, GitHub가 보고하는 경우 월간 요청 수를 합산합니다.",
+    "monthly": "월간",
+    "unlimited": "무제한",
+    "unlimited_count": "무제한 {{count}}개",
+    "used_of": "{{used}}/{{entitlement}} 사용"
   },
   "common": {
     "login": "로그인",
@@ -748,8 +753,21 @@
     "loading": "GitHub Copilot 할당량 조회 중…",
     "load_failed": "할당량 조회 실패: {{message}}",
     "remaining": "{{percent}}% 남음",
-    "premium": "프리미엄 상호작용",
-    "unavailable": "할당량을 확인할 수 없습니다. Copilot 자격 증명을 확인한 후 다시 시도하세요."
+    "unavailable": "할당량을 확인할 수 없습니다. Copilot 자격 증명을 확인한 후 다시 시도하세요.",
+    "no_data": "GitHub가 이 계정의 Copilot 할당량 데이터를 반환하지 않았습니다.",
+    "no_token": "이 자격 증명에는 할당량 조회용 GitHub 토큰이 없습니다. GitHub Copilot에 다시 로그인하세요.",
+    "credential_unreadable": "Copilot 자격 증명 파일을 읽을 수 없습니다.",
+    "token_rejected": "GitHub가 이 자격 증명의 토큰을 거부했습니다(HTTP {{status}}). GitHub Copilot에 다시 로그인하세요.",
+    "http_error": "GitHub 할당량 조회가 HTTP {{status}}(으)로 실패했습니다.",
+    "request_failed": "프록시를 통해 GitHub에 연결하여 할당량을 읽을 수 없습니다.",
+    "unlimited": "무제한",
+    "plan_label": "플랜",
+    "resets": "초기화",
+    "credits_used": "사용한 크레딧",
+    "used_of": "{{used}} / {{entitlement}} 사용",
+    "bucket_premium_interactions": "프리미엄 요청",
+    "bucket_chat": "채팅",
+    "bucket_completions": "코드 완성"
   },
   "meta_quota": {
     "title": "Muse (Meta) 할당량",

@@ -30,6 +30,8 @@ import {
   type ResolvedTheme,
 } from '@/features/authFiles/constants';
 import { deriveAuthFileIdentity } from '@/features/authFiles/identity';
+import { useQuotaStore } from '@/stores/useQuotaStore';
+import { getQuotaCacheKey } from '@/utils/quota/identity';
 import { resolveAuthFileQuotaType } from '@/features/authFiles/logic';
 import type { AuthFileStatusBarData } from '@/features/authFiles/hooks/useAuthFilesStatusBarCache';
 import { AuthFileQuotaSection } from '@/features/authFiles/components/AuthFileQuotaSection';
@@ -117,7 +119,12 @@ export function AuthFileCard(props: AuthFileCardProps) {
   const weightValue = Number.isSafeInteger(file.weight) ? file.weight : undefined;
   const noteValue = typeof file.note === 'string' ? file.note.trim() : '';
   // Lead with account identity and use the file name as secondary text.
-  const identity = deriveAuthFileIdentity(file);
+  const reportedLogin = useQuotaStore((state) =>
+    quotaType === 'copilot'
+      ? (state.copilotQuota[getQuotaCacheKey(file)]?.data?.login ?? null)
+      : null
+  );
+  const identity = deriveAuthFileIdentity(file, reportedLogin);
   const siwcExpires = file.siwcExpiresAt
     ? formatDateTimeValue(file.siwcExpiresAt, i18n.language)
     : '';

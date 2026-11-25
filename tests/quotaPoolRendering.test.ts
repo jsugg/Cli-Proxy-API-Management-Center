@@ -140,3 +140,39 @@ test('summary scopes remembered provider windows to the quota cache session', ()
   expect(source).toContain('previous.session === session');
   expect(source).toContain("state?.status === 'success'");
 });
+
+test('a GitHub Copilot summary card shows monthly buckets and marks unlimited seats', async () => {
+  await i18n.changeLanguage('en');
+  const now = Date.now();
+  const markup = renderToStaticMarkup(
+    createElement(QuotaPoolSummary, {
+      entries: [{ type: 'copilot', file: { name: 'copilot-1.json', type: 'copilot' } }],
+      quotaFor: () => ({
+        status: 'success',
+        observedAt: new Date(now).toISOString(),
+        data: {
+          buckets: ['premium_interactions', 'chat', 'completions'].map((id) => ({
+            id,
+            unlimited: true,
+            percentRemaining: null,
+            remaining: null,
+            entitlement: null,
+          })),
+          resetAtMs: now + 6 * 86_400_000,
+          plan: 'business',
+          login: 'octo',
+          creditsUsed: 1,
+        },
+      }),
+      now,
+    })
+  );
+  expect(markup).toContain('GitHub Copilot');
+  expect(markup).toContain('1 enabled credential<');
+  for (const label of ['Premium requests', 'Chat', 'Code completions'])
+    expect(markup).toContain(label);
+  expect(markup).toContain('monthly');
+  expect(markup.match(/Unlimited/g)?.length).toBeGreaterThanOrEqual(3);
+  expect(markup).toContain('1/1');
+  expect(markup).not.toContain('octo');
+});

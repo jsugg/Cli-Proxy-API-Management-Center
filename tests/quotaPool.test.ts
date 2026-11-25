@@ -240,4 +240,75 @@ describe('quota identity masking', () => {
     expect(maskQuotaIdentity('personal-account.json')).toBe('personal-account.json');
     expect(maskQuotaIdentity('josé@exämple.com')).toBe('j…é@exämple.com');
   });
+
+  test('copilot pool counts unlimited seats and averages only limited buckets', () => {
+    const copilot = (name: string, disabled = false) => ({
+      type: 'copilot' as const,
+      file: { name, type: 'copilot', disabled },
+    });
+    const reset = now + 5 * 86_400_000;
+    const bucket = (id: string, unlimited: boolean, percent: number | null = null) => ({
+      id: id as 'premium_interactions' | 'chat' | 'completions',
+      unlimited,
+      percentRemaining: percent,
+      remaining: percent === null ? null : percent * 3,
+      entitlement: percent === null ? null : 300,
+    });
+    const states: Record<string, unknown> = {
+      business: {
+        status: 'success',
+        observedAt: new Date(now).toISOString(),
+        data: {
+          buckets: ['premium_interactions', 'chat', 'completions'].map((id) => bucket(id, true)),
+          resetAtMs: reset,
+          plan: 'business',
+          login: 'a',
+          creditsUsed: 1,
+        },
+      },
+      pro: {
+        status: 'success',
+        observedAt: new Date(now).toISOString(),
+        data: {
+          buckets: [bucket('premium_interactions', false, 40), bucket('chat', true)],
+          resetAtMs: reset + 1000,
+          plan: 'individual',
+          login: 'b',
+          creditsUsed: null,
+        },
+      },
+      stale: {
+        status: 'success',
+        observedAt: new Date(now - 60 * 60_000).toISOString(),
+        data: {
+          buckets: [bucket('premium_interactions', false, 0)],
+          resetAtMs: reset,
+          plan: null,
+          login: null,
+          creditsUsed: null,
+        },
+      },
+    };
+    const entries = [copilot('business'), copilot('pro'), copilot('stale'), copilot('off', true)];
+    const [pool] = buildQuotaPools(entries, (item) => states[item.file.name] as never, now);
+    expect(pool.provider).toBe('copilot');
+    expect(pool.total).toBe(3);
+    expect(pool.windows.map((w) => w.id)).toEqual(['premium_interactions', 'chat', 'completions']);
+    expect(pool.windows[0]).toMatchObject({
+      periodHours: null,
+      periodKey: 'quota_pool.monthly',
+      labelKey: 'copilot_quota.bucket_premium_interactions',
+      known: 2,
+      unlimited: 1,
+      remainingPercent: 40,
+      used: 180,
+      entitlement: 300,
+      nextResetAtMs: reset,
+    });
+    expect(pool.windows[1]).toMatchObject({ known: 2, unlimited: 2, remainingPercent: null });
+    expect(pool.windows[2]).toMatchObject({ known: 1, unlimited: 1 });
+
+    const [empty] = buildQuotaPools([copilot('new')], () => undefined, now);
+    expect(empty.windows.map((w) => [w.id, w.known])).toEqual([['premium_interactions', 0]]);
+  });
 });

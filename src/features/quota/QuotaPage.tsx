@@ -194,13 +194,18 @@ export function QuotaPage() {
   const sortNow = sortMode === 'default' ? 0 : tick;
 
   const entries = useMemo(() => classifyQuotaFiles(files), [files]);
+  const copilotLoginFor = useCallback(
+    (file: AuthFileItem) => copilotQuota[getQuotaCacheKey(file)]?.data?.login ?? null,
+    [copilotQuota]
+  );
   const labelForFile = useMemo(
     () =>
       createQuotaLabelResolver(
         entries.map((entry) => entry.file),
-        showEmails
+        showEmails,
+        copilotLoginFor
       ),
-    [entries, showEmails]
+    [entries, showEmails, copilotLoginFor]
   );
   const tabCounts = useMemo(() => buildTabCounts(entries), [entries]);
   // Account-level settings span every page and tab, so count over all entries.

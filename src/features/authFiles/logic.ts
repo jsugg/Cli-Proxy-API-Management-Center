@@ -12,6 +12,7 @@ import {
   type AuthFileQuotaFilter,
   type QuotaProviderType,
 } from './constants';
+import { readCopilotLogin } from '@/utils/quota/identity';
 import { deriveAuthFileIdentity } from './identity';
 import type { AuthFilesSortMode } from './uiState';
 
@@ -60,6 +61,7 @@ export const matchesAuthFileSearch = (
     file.type,
     file.provider,
     file.email,
+    readCopilotLogin(file),
     file.projectId,
     getAuthFileStatusMessage(file),
   ].some((value) => {

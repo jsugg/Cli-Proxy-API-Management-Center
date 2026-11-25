@@ -57,10 +57,13 @@ function getRelativeFormatter(locale?: string): Intl.RelativeTimeFormat {
   return formatter;
 }
 
-/** Coarse observation age; freshness labels deliberately keep their existing wording. */
+/**
+ * Coarse observation age; freshness labels deliberately keep their existing wording.
+ * An observation is never in the future: one taken since the last clock tick reads "1 minute ago".
+ */
 export function formatRelativeFreshness(targetMs: number, nowMs: number, locale?: string): string {
   const { value, unit } = relativeTimeParts(targetMs, nowMs);
-  return getRelativeFormatter(locale).format(value, unit);
+  return getRelativeFormatter(locale).format(-Math.abs(value), unit);
 }
 
 type DurationUnit = 'day' | 'hour' | 'minute';

@@ -18,6 +18,7 @@
  * tests fighting each other.
  */
 
+import type { CopilotQuotaState } from '@/types';
 import { parseIsoToMs } from '@/utils/quota';
 import { HOUR_MS } from '@/utils/time/durations';
 import type { QuotaProviderType } from './providers/types';
@@ -143,6 +144,16 @@ export function collectQuotaRowInstants(
 
   if (provider === 'kimi') {
     return collectRows((quota as { rows?: WindowLike[] }).rows ?? [], 'row');
+  }
+
+  if (provider === 'copilot') {
+    // The monthly reset returns capacity only to limited buckets that were used.
+    const data = (quota as CopilotQuotaState).data;
+    if (!data || !isUsableMs(data.resetAtMs)) return [];
+    const atMs = data.resetAtMs;
+    return (data.buckets ?? [])
+      .filter((bucket) => !bucket.unlimited && (bucket.percentRemaining ?? 100) < 100)
+      .map((bucket) => ({ rowId: bucket.id, atMs, kind: 'window' as const }));
   }
 
   if (provider === 'meta') {

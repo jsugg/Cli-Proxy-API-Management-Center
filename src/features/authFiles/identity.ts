@@ -16,8 +16,9 @@
  */
 
 import type { AuthFileItem } from '@/types';
+import { readCopilotLogin } from '@/utils/quota/identity';
 
-export type AuthFileIdentityKind = 'email' | 'projectId' | 'fileName';
+export type AuthFileIdentityKind = 'email' | 'account' | 'projectId' | 'fileName';
 
 export type AuthFileIdentity = {
   /** 卡片主行。无任何身份线索时为空串——不伪造占位符。 */
@@ -42,18 +43,28 @@ export const stripJsonExtension = (name: string): string => {
 };
 
 /**
- * 身份回落链：email → projectId → 文件名（去 .json）。
+ * 身份回落链：email → Copilot 登录名 → projectId → 文件名（去 .json）。
  * 刻意与 provider 无关：runtime-only 虚拟凭证（name === email === 频道 ID）
  * 由副行去重守卫结构性处理，比按 provider 白名单更稳。
  */
-export const deriveAuthFileIdentity = (file: AuthFileItem): AuthFileIdentity => {
+export const deriveAuthFileIdentity = (
+  file: AuthFileItem,
+  reportedLogin?: string | null
+): AuthFileIdentity => {
   const fullName = readIdentityText(file.name);
   const base = stripJsonExtension(fullName);
   const email = readIdentityText(file.email);
+  const account = email ? '' : readCopilotLogin(file, reportedLogin);
   const projectId = readIdentityText(file.projectId);
 
-  const kind: AuthFileIdentityKind = email ? 'email' : projectId ? 'projectId' : 'fileName';
-  const primary = email || projectId || base;
+  const kind: AuthFileIdentityKind = email
+    ? 'email'
+    : account
+      ? 'account'
+      : projectId
+        ? 'projectId'
+        : 'fileName';
+  const primary = email || account || projectId || base;
 
   const secondary =
     kind === 'fileName' || !base || base.toLowerCase() === primary.toLowerCase() ? null : base;

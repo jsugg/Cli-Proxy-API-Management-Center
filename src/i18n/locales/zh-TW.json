@@ -100,7 +100,11 @@
     "period": "{{hours}}小時",
     "show_emails": "顯示信箱",
     "hide_emails": "隱藏信箱",
-    "explanation": "按獨立額度視窗計算各帳戶剩餘百分比的非加權平均，涵蓋所有已啟用憑證，不代表權杖總量，方案不加權。排除未知、失敗、已過重置時間或超過15分鐘的觀測。重新整理帳戶可更新資料。"
+    "explanation": "按獨立額度視窗計算各帳戶剩餘百分比的非加權平均，涵蓋所有已啟用憑證，不代表權杖總量，方案不加權。排除未知、失敗、已過重置時間或超過15分鐘的觀測。重新整理帳戶可更新資料。GitHub Copilot 單獨計算無限制席位，並在 GitHub 提供時加總每月請求數。",
+    "monthly": "每月",
+    "unlimited": "無限制",
+    "unlimited_count": "{{count}} 個無限制",
+    "used_of": "已用 {{used}}/{{entitlement}}"
   },
   "common": {
     "login": "登入",
@@ -733,8 +737,21 @@
     "loading": "正在查詢 GitHub Copilot 額度…",
     "load_failed": "額度查詢失敗：{{message}}",
     "remaining": "剩餘 {{percent}}%",
-    "premium": "進階互動",
-    "unavailable": "額度無法取得。請檢查 Copilot 憑證後重試。"
+    "unavailable": "額度無法取得。請檢查 Copilot 憑證後重試。",
+    "no_data": "GitHub 未傳回此帳號的 Copilot 額度資料。",
+    "no_token": "此憑證沒有用於查詢額度的 GitHub 權杖。請重新登入 GitHub Copilot。",
+    "credential_unreadable": "無法讀取 Copilot 憑證檔案。",
+    "token_rejected": "GitHub 拒絕了此憑證的權杖（HTTP {{status}}）。請重新登入 GitHub Copilot。",
+    "http_error": "GitHub 額度查詢失敗，HTTP {{status}}。",
+    "request_failed": "無法透過代理連線 GitHub 讀取額度。",
+    "unlimited": "無限制",
+    "plan_label": "方案",
+    "resets": "重置",
+    "credits_used": "已用點數",
+    "used_of": "已用 {{used}} / {{entitlement}}",
+    "bucket_premium_interactions": "進階請求",
+    "bucket_chat": "聊天",
+    "bucket_completions": "程式碼補全"
   },
   "meta_quota": {
     "title": "Muse (Meta) 額度",

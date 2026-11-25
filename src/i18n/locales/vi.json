@@ -92,6 +92,7 @@
   },
   "quota_pool": {
     "title": "Hạn mức còn lại theo nhà cung cấp",
+    "accounts_one": "{{count}} thông tin xác thực đang bật",
     "accounts": "{{count}} thông tin xác thực đang bật",
     "unknown": "Không rõ",
     "coverage": "Đã đo {{known}}/{{total}}",
@@ -100,7 +101,11 @@
     "period": "{{hours}} giờ",
     "show_emails": "Hiện email",
     "hide_emails": "Ẩn email",
-    "explanation": "Trung bình không trọng số của phần trăm còn lại theo từng giới hạn và cửa sổ, trên mọi thông tin xác thực đang bật, không phải tổng token. Không gán trọng số theo gói. Loại dữ liệu thiếu, lỗi, đã qua lần đặt lại hoặc cũ hơn 15 phút. Làm mới tài khoản để cập nhật."
+    "explanation": "Trung bình không trọng số của phần trăm còn lại theo từng giới hạn và cửa sổ, trên mọi thông tin xác thực đang bật, không phải tổng token. Không gán trọng số theo gói. Loại dữ liệu thiếu, lỗi, đã qua lần đặt lại hoặc cũ hơn 15 phút. Làm mới tài khoản để cập nhật. GitHub Copilot tính riêng các ghế không giới hạn và cộng số yêu cầu hằng tháng khi GitHub báo cáo.",
+    "monthly": "hằng tháng",
+    "unlimited": "Không giới hạn",
+    "unlimited_count": "{{count}} không giới hạn",
+    "used_of": "đã dùng {{used}}/{{entitlement}}"
   },
   "common": {
     "login": "Đăng nhập",
@@ -2541,8 +2546,21 @@
     "loading": "Đang truy vấn quota GitHub Copilot…",
     "load_failed": "Truy vấn quota thất bại: {{message}}",
     "remaining": "Còn lại {{percent}}%",
-    "premium": "Tương tác cao cấp",
-    "unavailable": "Không thể lấy hạn mức. Hãy kiểm tra thông tin xác thực Copilot và thử lại."
+    "unavailable": "Không thể lấy hạn mức. Hãy kiểm tra thông tin xác thực Copilot và thử lại.",
+    "no_data": "GitHub không trả về dữ liệu hạn mức Copilot cho tài khoản này.",
+    "no_token": "Thông tin xác thực này không có token GitHub để tra cứu hạn mức. Hãy đăng nhập lại GitHub Copilot.",
+    "credential_unreadable": "Không thể đọc tệp thông tin xác thực Copilot.",
+    "token_rejected": "GitHub đã từ chối token của thông tin xác thực này (HTTP {{status}}). Hãy đăng nhập lại GitHub Copilot.",
+    "http_error": "Tra cứu hạn mức GitHub thất bại với HTTP {{status}}.",
+    "request_failed": "Không thể kết nối GitHub qua proxy để đọc hạn mức.",
+    "unlimited": "Không giới hạn",
+    "plan_label": "Gói",
+    "resets": "Đặt lại",
+    "credits_used": "Tín dụng đã dùng",
+    "used_of": "Đã dùng {{used}} / {{entitlement}}",
+    "bucket_premium_interactions": "Yêu cầu cao cấp",
+    "bucket_chat": "Trò chuyện",
+    "bucket_completions": "Hoàn thành mã"
   },
   "meta_quota": {
     "title": "Quota Muse (Meta)",

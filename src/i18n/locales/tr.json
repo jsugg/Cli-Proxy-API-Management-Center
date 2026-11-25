@@ -92,6 +92,7 @@
   },
   "quota_pool": {
     "title": "Sağlayıcıya göre kalan kota",
+    "accounts_one": "{{count}} etkin kimlik bilgisi",
     "accounts": "{{count}} etkin kimlik bilgisi",
     "unknown": "Bilinmiyor",
     "coverage": "Gözlenen {{known}}/{{total}}",
@@ -100,7 +101,11 @@
     "period": "{{hours}} saat",
     "show_emails": "E-postaları göster",
     "hide_emails": "E-postaları gizle",
-    "explanation": "Tüm etkin kimlik bilgilerinde her sınır ve dönem için kalan hesap yüzdelerinin ağırlıksız ortalamasıdır, token kapasitesi değildir. Planlar ağırlıklandırılmaz. Bilinmeyen, başarısız, sıfırlama zamanı geçmiş veya 15 dakikadan eski gözlemler dışlanır. Güncellemek için hesapları yenileyin."
+    "explanation": "Tüm etkin kimlik bilgilerinde her sınır ve dönem için kalan hesap yüzdelerinin ağırlıksız ortalamasıdır, token kapasitesi değildir. Planlar ağırlıklandırılmaz. Bilinmeyen, başarısız, sıfırlama zamanı geçmiş veya 15 dakikadan eski gözlemler dışlanır. Güncellemek için hesapları yenileyin. GitHub Copilot sınırsız koltukları ayrı sayar ve GitHub bildirdiğinde aylık istek sayılarını toplar.",
+    "monthly": "aylık",
+    "unlimited": "Sınırsız",
+    "unlimited_count": "{{count}} sınırsız",
+    "used_of": "{{used}}/{{entitlement}} kullanıldı"
   },
   "common": {
     "login": "Giriş",
@@ -748,8 +753,21 @@
     "loading": "GitHub Copilot Kotası Sorgulanıyor…",
     "load_failed": "Kota Sorgulanamadı: {{message}}",
     "remaining": "%{{percent}} Kaldı",
-    "premium": "Premium etkileşimler",
-    "unavailable": "Kota alınamadı. Copilot kimlik bilgilerini kontrol edip tekrar deneyin."
+    "unavailable": "Kota alınamadı. Copilot kimlik bilgilerini kontrol edip tekrar deneyin.",
+    "no_data": "GitHub bu hesap için Copilot kota verisi döndürmedi.",
+    "no_token": "Bu kimlik bilgisinde kota sorgusu için GitHub belirteci yok. GitHub Copilot'a yeniden giriş yapın.",
+    "credential_unreadable": "Copilot kimlik bilgisi dosyası okunamadı.",
+    "token_rejected": "GitHub bu kimlik bilgisinin belirtecini reddetti (HTTP {{status}}). GitHub Copilot'a yeniden giriş yapın.",
+    "http_error": "GitHub kota sorgusu HTTP {{status}} ile başarısız oldu.",
+    "request_failed": "Kotayı okumak için proxy üzerinden GitHub'a ulaşılamadı.",
+    "unlimited": "Sınırsız",
+    "plan_label": "Plan",
+    "resets": "Sıfırlanma",
+    "credits_used": "Kullanılan kredi",
+    "used_of": "{{used}} / {{entitlement}} kullanıldı",
+    "bucket_premium_interactions": "Premium istekler",
+    "bucket_chat": "Sohbet",
+    "bucket_completions": "Kod tamamlama"
   },
   "meta_quota": {
     "title": "Muse (Meta) Kotası",

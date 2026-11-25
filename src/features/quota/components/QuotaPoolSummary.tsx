@@ -5,8 +5,14 @@ import { useNow } from '@/hooks/useNow';
 import { formatRelativeInstant } from '@/utils/quota';
 import type { QuotaFileEntry } from '../logic';
 import type { QuotaCardState } from '../providers';
-import { buildQuotaPools, type QuotaPoolWindowMemory } from '../pool';
+import { buildQuotaPools, type QuotaPool, type QuotaPoolWindowMemory } from '../pool';
 import styles from './QuotaPoolSummary.module.scss';
+
+const POOL_TITLES: Record<QuotaPool['provider'], string> = {
+  claude: 'Claude',
+  codex: 'Codex',
+  copilot: 'GitHub Copilot',
+};
 
 interface QuotaPoolSummaryProps {
   entries: readonly QuotaFileEntry[];
@@ -47,12 +53,13 @@ export function QuotaPoolSummary({ entries, quotaFor, now: fixedNow }: QuotaPool
         });
         if (hasSuccess) {
           windows[pool.provider] = pool.windows.map(
-            ({ id, label, labelKey, labelParams, periodHours }) => ({
+            ({ id, label, labelKey, labelParams, periodHours, periodKey }) => ({
               id,
               label,
               labelKey,
               labelParams,
               periodHours,
+              ...(periodKey ? { periodKey } : {}),
             })
           );
         }
@@ -70,45 +77,69 @@ export function QuotaPoolSummary({ entries, quotaFor, now: fixedNow }: QuotaPool
         {pools.map((pool) => (
           <article className={styles.card} key={pool.provider}>
             <header className={styles.heading}>
-              <h2>{pool.provider === 'claude' ? 'Claude' : 'Codex'}</h2>
+              <h2>{POOL_TITLES[pool.provider]}</h2>
               <span>{t('quota_pool.accounts', { count: pool.total })}</span>
             </header>
-            {pool.windows.map((window) => (
-              <div className={styles.limit} key={JSON.stringify([window.id, window.periodHours])}>
-                <div className={styles.heading}>
-                  <span>
-                    {/* Translate at render time so a language switch relabels loaded rows. */}
-                    {window.labelKey
-                      ? t(window.labelKey, window.labelParams)
-                      : window.label || window.id}
-                    {window.periodHours !== null &&
-                      ` · ${t('quota_pool.period', { hours: window.periodHours })}`}
-                  </span>
-                  <strong>
-                    {window.remainingPercent === null
-                      ? t('quota_pool.unknown')
-                      : `${Math.round(window.remainingPercent)}%`}
-                  </strong>
+            {pool.windows.map((window) => {
+              const unlimited = window.unlimited ?? 0;
+              const allUnlimited = window.remainingPercent === null && unlimited > 0;
+              const limitedKnown = window.known - unlimited;
+              return (
+                <div
+                  className={styles.limit}
+                  key={JSON.stringify([window.id, window.periodHours])}
+                  data-pool-window={window.id}
+                >
+                  <div className={styles.heading}>
+                    <span>
+                      {/* Translate at render time so a language switch relabels loaded rows. */}
+                      {window.labelKey
+                        ? t(window.labelKey, window.labelParams)
+                        : window.label || window.id}
+                      {window.periodHours !== null &&
+                        ` · ${t('quota_pool.period', { hours: window.periodHours })}`}
+                      {window.periodHours === null &&
+                        window.periodKey &&
+                        ` · ${t(window.periodKey)}`}
+                    </span>
+                    <strong>
+                      {allUnlimited
+                        ? t('quota_pool.unlimited')
+                        : window.remainingPercent === null
+                          ? t('quota_pool.unknown')
+                          : `${Math.round(window.remainingPercent)}%`}
+                    </strong>
+                  </div>
+                  <div className={styles.track} aria-hidden="true">
+                    {(allUnlimited || window.remainingPercent !== null) && (
+                      <span style={{ width: `${allUnlimited ? 100 : window.remainingPercent}%` }} />
+                    )}
+                  </div>
+                  <div className={styles.meta}>
+                    <span>
+                      {t('quota_pool.coverage', { known: window.known, total: pool.total })}
+                      {unlimited > 0 &&
+                        limitedKnown > 0 &&
+                        ` · ${t('quota_pool.unlimited_count', { count: unlimited })}`}
+                      {(window.entitlement ?? 0) > 0 &&
+                        ` · ${t('quota_pool.used_of', {
+                          used: Math.round(window.used ?? 0).toLocaleString(i18n.language),
+                          entitlement: Math.round(window.entitlement ?? 0).toLocaleString(
+                            i18n.language
+                          ),
+                        })}`}
+                    </span>
+                    <span>
+                      {window.nextResetAtMs === null
+                        ? t('quota_pool.reset_unknown')
+                        : t('quota_pool.next_reset', {
+                            time: formatRelativeInstant(window.nextResetAtMs, now, i18n.language),
+                          })}
+                    </span>
+                  </div>
                 </div>
-                <div className={styles.track} aria-hidden="true">
-                  {window.remainingPercent !== null && (
-                    <span style={{ width: `${window.remainingPercent}%` }} />
-                  )}
-                </div>
-                <div className={styles.meta}>
-                  <span>
-                    {t('quota_pool.coverage', { known: window.known, total: pool.total })}
-                  </span>
-                  <span>
-                    {window.nextResetAtMs === null
-                      ? t('quota_pool.reset_unknown')
-                      : t('quota_pool.next_reset', {
-                          time: formatRelativeInstant(window.nextResetAtMs, now, i18n.language),
-                        })}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </article>
         ))}
       </div>

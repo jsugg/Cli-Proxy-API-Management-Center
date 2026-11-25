@@ -53,11 +53,12 @@ describe('quota auto revalidation', () => {
     expect(
       select([
         entry('codex', 'codex'),
+        entry('copilot', 'copilot'),
         entry('antigravity', 'antigravity'),
         entry('xai', 'xai'),
         entry('off', 'claude', true),
       ])
-    ).toEqual(['codex']);
+    ).toEqual(['codex', 'copilot']);
   });
 
   test('one attempt per credential per interval across visits, whatever the outcome', () => {

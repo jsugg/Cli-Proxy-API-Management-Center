@@ -4,11 +4,15 @@ import { isDevinFile, isPluginQuotaFile } from './validators';
 
 const QUOTA_IDENTITY_SEPARATOR = '\0';
 
+/** An email, or a GitHub login (no domain) for Copilot credentials. */
 interface DisplayEmail {
   address: string;
   local: string[];
-  domain: string;
+  domain: string | null;
 }
+
+/** Optional live identity, e.g. the GitHub login reported by a Copilot quota reading. */
+export type QuotaLoginHint = (file: AuthFileItem) => string | null | undefined;
 
 interface EmailMask {
   prefix: number;
@@ -22,6 +26,26 @@ export interface QuotaLabelResolver {
 const text = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 const providerFor = (file: AuthFileItem): string =>
   (text(file.provider) || text(file.type)).toLowerCase();
+
+const GITHUB_LOGIN = /^[A-Za-z0-9](?:[A-Za-z0-9_-]{0,98}[A-Za-z0-9])?$/;
+
+/**
+ * GitHub Copilot credentials have a login, not an email. Read only `username`, the
+ * GitHub-reported login and a login-shaped `label`, never `account` (for API-key
+ * credentials it is the key). The server's provider-name fallback label is not an identity.
+ */
+export const readCopilotLogin = (file: AuthFileItem, reportedLogin?: string | null): string => {
+  if (providerFor(file) !== 'copilot') return '';
+  for (const [value, isLabel] of [
+    [file.username, false],
+    [reportedLogin, false],
+    [file.label, true],
+  ] as const) {
+    const login = text(value);
+    if (GITHUB_LOGIN.test(login) && !(isLabel && login.toLowerCase() === 'copilot')) return login;
+  }
+  return '';
+};
 
 /** Recognize ordinary account emails, not display names, paths or credential secrets. */
 function displayEmail(value: string): DisplayEmail | null {
@@ -61,7 +85,7 @@ function baseMask(email: DisplayEmail): EmailMask {
 }
 
 function maskedEmail(email: DisplayEmail, mask = baseMask(email)): string {
-  return `${email.local.slice(0, mask.prefix).join('')}…${mask.suffix ? email.local.slice(-mask.suffix).join('') : ''}@${email.domain}`;
+  return `${email.local.slice(0, mask.prefix).join('')}…${mask.suffix ? email.local.slice(-mask.suffix).join('') : ''}${email.domain === null ? '' : `@${email.domain}`}`;
 }
 
 /** Mask local text only; filename cleanup belongs to the metadata-aware resolver. */
@@ -84,9 +108,11 @@ export function getQuotaCacheKey(file: AuthFileItem): string {
   return `${file.name}${QUOTA_IDENTITY_SEPARATOR}${authIndex ?? ''}`;
 }
 
-function quotaEmail(file: AuthFileItem): DisplayEmail | null {
+function quotaEmail(file: AuthFileItem, loginFor?: QuotaLoginHint): DisplayEmail | null {
   const metadata = displayEmail(text(file.email));
   if (metadata) return metadata;
+  const login = readCopilotLogin(file, loginFor?.(file));
+  if (login) return { address: login, local: Array.from(login), domain: null };
   const name = text(file.name);
   const base = name.replace(/\.json$/i, '');
   const prefix = /\.json$/i.test(name) ? /^(claude|codex)-\d+-/i.exec(base) : null;
@@ -96,8 +122,8 @@ function quotaEmail(file: AuthFileItem): DisplayEmail | null {
 }
 
 /** Prefer safe email metadata; strip only our known provider-number filename convention. */
-export function getQuotaDisplayName(file: AuthFileItem): string {
-  const email = quotaEmail(file);
+export function getQuotaDisplayName(file: AuthFileItem, loginFor?: QuotaLoginHint): string {
+  const email = quotaEmail(file, loginFor);
   if (email) return email.address;
   if (!isDevinFile(file) && !isPluginQuotaFile(file)) return file.name;
   const identity = normalizeRecentRequestAuthIndex(file.authIndex);
@@ -105,8 +131,12 @@ export function getQuotaDisplayName(file: AuthFileItem): string {
 }
 
 /** Return a clean email alone, masked by default, without changing any credential identifier. */
-export function getQuotaDisplayLabel(file: AuthFileItem, showEmails = false): string {
-  const email = quotaEmail(file);
+export function getQuotaDisplayLabel(
+  file: AuthFileItem,
+  showEmails = false,
+  loginFor?: QuotaLoginHint
+): string {
+  const email = quotaEmail(file, loginFor);
   if (email) return showEmails ? email.address : maskedEmail(email);
   const identity = getQuotaDisplayName(file);
   return showEmails || !identity.includes('@') ? identity : '…@…';
@@ -115,13 +145,14 @@ export function getQuotaDisplayLabel(file: AuthFileItem, showEmails = false): st
 /** Resolve collection-local collisions without persistent aliases or exposing a whole local part. */
 export function createQuotaLabelResolver(
   files: readonly AuthFileItem[],
-  showEmails = false
+  showEmails = false,
+  loginFor?: QuotaLoginHint
 ): QuotaLabelResolver {
   const keyFor = (file: AuthFileItem, email: DisplayEmail) =>
-    JSON.stringify([providerFor(file), email.local.join(''), email.domain.toLowerCase()]);
+    JSON.stringify([providerFor(file), email.local.join(''), email.domain?.toLowerCase() ?? null]);
   const groups = new Map<string, Map<string, DisplayEmail>>();
   for (const file of files) {
-    const email = quotaEmail(file);
+    const email = quotaEmail(file, loginFor);
     if (!email) continue;
     const groupKey = JSON.stringify([providerFor(file), maskedEmail(email).toLowerCase()]);
     const group = groups.get(groupKey) ?? new Map<string, DisplayEmail>();
@@ -161,11 +192,11 @@ export function createQuotaLabelResolver(
     for (const key of group.keys()) masks.set(key, mask);
   }
   const masked = (file: AuthFileItem): string => {
-    const email = quotaEmail(file);
+    const email = quotaEmail(file, loginFor);
     return email ? maskedEmail(email, masks.get(keyFor(file, email))) : getQuotaDisplayLabel(file);
   };
   return Object.assign(
-    (file: AuthFileItem) => (showEmails ? getQuotaDisplayName(file) : masked(file)),
+    (file: AuthFileItem) => (showEmails ? getQuotaDisplayName(file, loginFor) : masked(file)),
     { masked }
   );
 }

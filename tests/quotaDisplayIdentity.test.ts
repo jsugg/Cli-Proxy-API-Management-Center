@@ -197,4 +197,29 @@ describe('quota account display identity', () => {
       expect(getQuotaCacheKey(shared)).toBe('shared.json\0fixture-12');
     }
   });
+
+  test('copilot credentials show the GitHub login under the same mask, never the server label', () => {
+    const copilot = (extra: Partial<AuthFileItem>): AuthFileItem => ({
+      name: 'copilot-356.json',
+      type: 'copilot',
+      label: 'copilot',
+      authIndex: 'fixture-c',
+      ...extra,
+    });
+    expect(getQuotaDisplayLabel(copilot({ username: 'juan-sugg_AWSPACE' }))).toBe('juan…ACE');
+    expect(getQuotaDisplayLabel(copilot({ username: 'juan-sugg_AWSPACE' }), true)).toBe(
+      'juan-sugg_AWSPACE'
+    );
+    expect(getQuotaDisplayLabel(copilot({}), true)).toBe('copilot-356.json');
+    expect(getQuotaDisplayLabel(copilot({ label: 'octo-cat' }), true)).toBe('octo-cat');
+    expect(getQuotaDisplayLabel(copilot({}), true, () => 'reported-login')).toBe('reported-login');
+    expect(getQuotaDisplayLabel(copilot({ account: 'sk-not-an-identity' }), true)).toBe(
+      'copilot-356.json'
+    );
+    expect(
+      getQuotaDisplayLabel({ ...copilot({ username: 'octo' }), type: 'codex' }, true)
+    ).not.toBe('octo');
+    const resolve = createQuotaLabelResolver([copilot({})], false, () => 'juan-pedro-sugg_hpi');
+    expect(resolve(copilot({}))).toBe('juan…hpi');
+  });
 });

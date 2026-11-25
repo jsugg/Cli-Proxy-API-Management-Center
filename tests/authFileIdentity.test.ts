@@ -183,4 +183,18 @@ describe('deriveAuthFileIdentity', () => {
       fullName: '',
     });
   });
+
+  test('copilot credentials use the GitHub login as an account identity', () => {
+    const copilot = authFile({ name: 'copilot-356.json', type: 'copilot', label: 'copilot' });
+    expect(deriveAuthFileIdentity({ ...copilot, username: 'octo-cat' })).toMatchObject({
+      kind: 'account',
+      primary: 'octo-cat',
+      secondary: 'copilot-356',
+    });
+    expect(deriveAuthFileIdentity(copilot, 'reported')).toMatchObject({
+      kind: 'account',
+      primary: 'reported',
+    });
+    expect(deriveAuthFileIdentity(copilot)).toMatchObject({ kind: 'fileName' });
+  });
 });

@@ -10,6 +10,7 @@ import type { QuotaProviderType } from './providers/types';
 export const AUTO_REVALIDATE_PROVIDERS: ReadonlySet<QuotaProviderType> = new Set([
   'claude',
   'codex',
+  'copilot',
 ]);
 /** Cached readings younger than this are shown as-is; older ones refresh in the background. */
 export const QUOTA_REVALIDATE_AFTER_MS = 5 * 60_000;

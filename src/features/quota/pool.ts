@@ -1,4 +1,4 @@
-import type { ClaudeQuotaState, CodexQuotaState } from '@/types';
+import type { ClaudeQuotaState, CodexQuotaState, CopilotQuotaState } from '@/types';
 import { getQuotaCacheKey } from '@/utils/quota/identity';
 import type { QuotaFileEntry } from './logic';
 import type { QuotaCardState } from './providers';
@@ -11,20 +11,27 @@ export interface QuotaPoolWindow {
   labelKey?: string;
   labelParams?: Record<string, string | number>;
   periodHours: number | null;
+  /** Calendar-period windows (Copilot's monthly buckets) have no fixed hour length. */
+  periodKey?: string;
   known: number;
+  /** Known accounts whose bucket is unlimited; they are excluded from remainingPercent. */
+  unlimited?: number;
+  /** Summed request counts across known limited accounts that report an entitlement. */
+  used?: number;
+  entitlement?: number;
   remainingPercent: number | null;
   nextResetAtMs: number | null;
 }
 
 export interface QuotaPool {
-  provider: 'claude' | 'codex';
+  provider: 'claude' | 'codex' | 'copilot';
   total: number;
   windows: QuotaPoolWindow[];
 }
 
 export type QuotaPoolWindowIdentity = Pick<
   QuotaPoolWindow,
-  'id' | 'label' | 'labelKey' | 'labelParams'
+  'id' | 'label' | 'labelKey' | 'labelParams' | 'periodKey'
 > & {
   periodHours?: number | null;
 };
@@ -39,15 +46,11 @@ export function buildQuotaPools(
   now: number,
   rememberedWindows: QuotaPoolWindowMemory = {}
 ): QuotaPool[] {
-  return (['claude', 'codex'] as const).flatMap((provider) => {
-    const seen = new Set<string>();
-    const accounts = entries.filter((entry) => {
-      const key = getQuotaCacheKey(entry.file);
-      if (entry.type !== provider || entry.file.disabled || seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+  return (['claude', 'codex', 'copilot'] as const).flatMap((provider) => {
+    const accounts = enabledAccounts(entries, provider);
     if (!accounts.length) return [];
+    if (provider === 'copilot')
+      return [buildCopilotPool(accounts, quotaFor, now, rememberedWindows.copilot)];
     const groups = new Map<string, QuotaPoolWindow>();
     const ensureWindow = (window: QuotaPoolWindowIdentity): QuotaPoolWindow => {
       const periodHours =
@@ -137,6 +140,112 @@ export function buildQuotaPools(
     }
     return [{ provider, total: accounts.length, windows: [...groups.values()] }];
   });
+}
+
+function enabledAccounts(
+  entries: readonly QuotaFileEntry[],
+  provider: QuotaPool['provider']
+): QuotaFileEntry[] {
+  const seen = new Set<string>();
+  return entries.filter((entry) => {
+    const key = getQuotaCacheKey(entry.file);
+    if (entry.type !== provider || entry.file.disabled || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+const isFreshObservation = (observedAtText: string | undefined, now: number): boolean => {
+  const observedAt = Date.parse(observedAtText ?? '');
+  return (
+    Number.isFinite(observedAt) && observedAt <= now && now - observedAt <= QUOTA_POOL_MAX_AGE_MS
+  );
+};
+
+const COPILOT_POOL_WINDOWS = {
+  premium_interactions: 'copilot_quota.bucket_premium_interactions',
+  chat: 'copilot_quota.bucket_chat',
+  completions: 'copilot_quota.bucket_completions',
+} as const;
+
+/**
+ * Copilot buckets are monthly request allowances. Unlimited seats are counted,
+ * not averaged in; request counts are summed only where GitHub reports them.
+ */
+function buildCopilotPool(
+  accounts: readonly QuotaFileEntry[],
+  quotaFor: (entry: QuotaFileEntry) => QuotaCardState | undefined,
+  now: number,
+  remembered: readonly QuotaPoolWindowIdentity[] | undefined
+): QuotaPool {
+  const groups = new Map<string, QuotaPoolWindow>();
+  const ensureWindow = (id: string): QuotaPoolWindow => {
+    let group = groups.get(id);
+    if (!group) {
+      group = {
+        id,
+        label: '',
+        labelKey: COPILOT_POOL_WINDOWS[id as keyof typeof COPILOT_POOL_WINDOWS],
+        periodHours: null,
+        periodKey: 'quota_pool.monthly',
+        known: 0,
+        unlimited: 0,
+        used: 0,
+        entitlement: 0,
+        remainingPercent: null,
+        nextResetAtMs: null,
+      };
+      groups.set(id, group);
+    }
+    return group;
+  };
+  const states = accounts.map((account) => quotaFor(account) as CopilotQuotaState | undefined);
+  const loaded = states.filter(
+    (state): state is CopilotQuotaState =>
+      state?.status === 'success' && Boolean(state.data?.buckets?.length)
+  );
+  if (!loaded.length) {
+    const ids =
+      states.some((state) => state?.status === 'loading') && remembered?.length
+        ? remembered.map((window) => window.id)
+        : ['premium_interactions'];
+    ids.forEach(ensureWindow);
+  }
+  for (const state of loaded) {
+    const data = state.data!;
+    const fresh = isFreshObservation(state.observedAt, now);
+    const reset = data.resetAtMs;
+    for (const bucket of data.buckets) {
+      if (!(bucket.id in COPILOT_POOL_WINDOWS)) continue;
+      const group = ensureWindow(bucket.id);
+      if (!fresh) continue;
+      if (bucket.unlimited) {
+        group.unlimited = (group.unlimited ?? 0) + 1;
+      } else {
+        const percent = bucket.percentRemaining;
+        if (
+          typeof percent !== 'number' ||
+          !Number.isFinite(percent) ||
+          percent < 0 ||
+          percent > 100
+        )
+          continue;
+        const limited = group.known - (group.unlimited ?? 0);
+        group.remainingPercent =
+          ((group.remainingPercent ?? 0) * limited + percent) / (limited + 1);
+        if (bucket.entitlement !== null && bucket.entitlement > 0 && bucket.remaining !== null) {
+          group.entitlement = (group.entitlement ?? 0) + bucket.entitlement;
+          group.used = (group.used ?? 0) + Math.max(0, bucket.entitlement - bucket.remaining);
+        }
+      }
+      group.known += 1;
+      if (typeof reset === 'number' && Number.isFinite(reset) && reset > now)
+        group.nextResetAtMs = Math.min(group.nextResetAtMs ?? reset, reset);
+    }
+  }
+  const order = Object.keys(COPILOT_POOL_WINDOWS);
+  const windows = [...groups.values()].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+  return { provider: 'copilot', total: accounts.length, windows };
 }
 
 export { maskQuotaIdentity } from '@/utils/quota/identity';

@@ -159,6 +159,34 @@ describe('collectQuotaRowInstants', () => {
     };
     expect(collectQuotaRowInstants('codex', quota)).toEqual([]);
   });
+
+  test('Copilot monthly reset applies only to used, limited buckets', () => {
+    const resetAtMs = NOW + 9 * DAY_MS;
+    const bucket = (id: string, unlimited: boolean, percentRemaining: number | null) => ({
+      id,
+      unlimited,
+      percentRemaining,
+      remaining: null,
+      entitlement: null,
+    });
+    const quota = {
+      status: 'success',
+      data: {
+        buckets: [
+          bucket('premium_interactions', false, 40),
+          bucket('chat', false, 100),
+          bucket('completions', true, null),
+        ],
+        resetAtMs,
+      },
+    };
+    expect(collectQuotaRowInstants('copilot', quota)).toEqual([
+      { rowId: 'premium_interactions', atMs: resetAtMs, kind: 'window' },
+    ]);
+    expect(
+      collectQuotaRowInstants('copilot', { ...quota, data: { ...quota.data, resetAtMs: null } })
+    ).toEqual([]);
+  });
 });
 
 describe('pickSoonestRowId', () => {

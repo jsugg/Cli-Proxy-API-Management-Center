@@ -92,6 +92,7 @@
   },
   "quota_pool": {
     "title": "Remaining quota by provider",
+    "accounts_one": "{{count}} enabled credential",
     "accounts": "{{count}} enabled credentials",
     "unknown": "Unknown",
     "coverage": "{{known}}/{{total}} observed",
@@ -100,7 +101,11 @@
     "period": "{{hours}}h",
     "show_emails": "Show emails",
     "hide_emails": "Hide emails",
-    "explanation": "Unweighted mean of remaining account percentages per limit and window, across all enabled credentials, not token capacity. Plans are not weighted. Coverage excludes unknown, failed, reset-past and older-than-15-minute observations. Refresh accounts to update."
+    "explanation": "Unweighted mean of remaining account percentages per limit and window, across all enabled credentials, not token capacity. Plans are not weighted. Coverage excludes unknown, failed, reset-past and older-than-15-minute observations. Refresh accounts to update. GitHub Copilot counts unlimited seats separately and sums monthly request counts where GitHub reports them.",
+    "monthly": "monthly",
+    "unlimited": "Unlimited",
+    "unlimited_count": "{{count}} unlimited",
+    "used_of": "{{used}}/{{entitlement}} used"
   },
   "common": {
     "login": "Login",
@@ -748,8 +753,21 @@
     "loading": "Querying GitHub Copilot quota…",
     "load_failed": "Failed to query quota: {{message}}",
     "remaining": "{{percent}}% remaining",
-    "premium": "Premium interactions",
-    "unavailable": "Quota unavailable. Check the Copilot credential and try again."
+    "unavailable": "Quota unavailable. Check the Copilot credential and try again.",
+    "no_data": "GitHub returned no Copilot quota data for this account.",
+    "no_token": "This credential has no GitHub token for quota lookups. Sign in to GitHub Copilot again.",
+    "credential_unreadable": "The Copilot credential file could not be read.",
+    "token_rejected": "GitHub rejected this credential's token (HTTP {{status}}). Sign in to GitHub Copilot again.",
+    "http_error": "GitHub's quota lookup failed with HTTP {{status}}.",
+    "request_failed": "Could not reach GitHub through the proxy to read quota.",
+    "unlimited": "Unlimited",
+    "plan_label": "Plan",
+    "resets": "Resets",
+    "credits_used": "Credits used",
+    "used_of": "{{used}} / {{entitlement}} used",
+    "bucket_premium_interactions": "Premium requests",
+    "bucket_chat": "Chat",
+    "bucket_completions": "Code completions"
   },
   "meta_quota": {
     "title": "Muse (Meta) Quota",

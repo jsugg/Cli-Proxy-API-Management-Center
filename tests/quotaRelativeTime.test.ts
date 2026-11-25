@@ -235,6 +235,7 @@ describe('formatRelativeFreshness', () => {
   test('keeps the existing coarse labels for observations', () => {
     expect(formatRelativeFreshness(NOW - 90 * MINUTE_MS, NOW, 'en')).toBe('1 hour ago');
     expect(formatRelativeFreshness(NOW - MINUTE_MS, NOW, 'en')).toBe('1 minute ago');
+    expect(formatRelativeFreshness(NOW, NOW, 'en')).toBe('1 minute ago');
   });
 });
 

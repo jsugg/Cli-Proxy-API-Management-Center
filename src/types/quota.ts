@@ -348,16 +348,33 @@ export interface DevinQuotaState extends DevinQuotaData {
   errorStatus?: number;
 }
 
-/** Premium-request quota observation, never the credential-bearing response. */
-export interface CopilotQuotaData {
+export type CopilotQuotaBucketId = 'premium_interactions' | 'chat' | 'completions';
+
+/** One monthly Copilot bucket. Unlimited buckets carry no percentage or counts. */
+export interface CopilotQuotaBucket {
+  id: CopilotQuotaBucketId;
+  unlimited: boolean;
+  percentRemaining: number | null;
   remaining: number | null;
   entitlement: number | null;
-  percentRemaining: number;
+}
+
+/** Whitelisted quota observation, never the credential-bearing response. */
+export interface CopilotQuotaData {
+  buckets: CopilotQuotaBucket[];
+  /** Monthly reset instant from `quota_reset_date_utc` (or `quota_reset_date`). */
+  resetAtMs: number | null;
+  plan: string | null;
+  /** GitHub login reported for the token, used only as the display identity. */
+  login: string | null;
+  /** Credits consumed this period on token-billed seats; null when not reported. */
+  creditsUsed: number | null;
 }
 
 export interface CopilotQuotaState {
   status: 'idle' | 'loading' | 'success' | 'error';
   data?: CopilotQuotaData;
+  observedAt?: string;
   error?: string;
   errorStatus?: number;
 }

@@ -104,6 +104,7 @@
     "monthly": "ежемесячно",
     "unlimited": "Без ограничений",
     "unlimited_count": "без ограничений: {{count}}",
+    "exhausted_count": "исчерпано: {{count}}",
     "used_of": "использовано {{used}}/{{entitlement}}"
   },
   "common": {

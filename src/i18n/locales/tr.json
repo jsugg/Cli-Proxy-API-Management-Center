@@ -105,6 +105,7 @@
     "monthly": "aylık",
     "unlimited": "Sınırsız",
     "unlimited_count": "{{count}} sınırsız",
+    "exhausted_count": "{{count}} tükendi",
     "used_of": "{{used}}/{{entitlement}} kullanıldı"
   },
   "common": {

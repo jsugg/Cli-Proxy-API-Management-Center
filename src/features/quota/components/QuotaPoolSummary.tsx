@@ -82,7 +82,9 @@ export function QuotaPoolSummary({ entries, quotaFor, now: fixedNow }: QuotaPool
             </header>
             {pool.windows.map((window) => {
               const unlimited = window.unlimited ?? 0;
-              const allUnlimited = window.remainingPercent === null && unlimited > 0;
+              const exhausted = window.exhausted ?? 0;
+              // One unlimited seat keeps the pool serving, whatever the limited seats have left.
+              const anyUnlimited = unlimited > 0;
               const limitedKnown = window.known - unlimited;
               return (
                 <div
@@ -103,16 +105,20 @@ export function QuotaPoolSummary({ entries, quotaFor, now: fixedNow }: QuotaPool
                         ` · ${t(window.periodKey)}`}
                     </span>
                     <strong>
-                      {allUnlimited
+                      {anyUnlimited
                         ? t('quota_pool.unlimited')
                         : window.remainingPercent === null
                           ? t('quota_pool.unknown')
-                          : `${Math.round(window.remainingPercent)}%`}
+                          : pool.provider === 'copilot'
+                            ? t('copilot_quota.remaining', {
+                                percent: Math.round(window.remainingPercent),
+                              })
+                            : `${Math.round(window.remainingPercent)}%`}
                     </strong>
                   </div>
                   <div className={styles.track} aria-hidden="true">
-                    {(allUnlimited || window.remainingPercent !== null) && (
-                      <span style={{ width: `${allUnlimited ? 100 : window.remainingPercent}%` }} />
+                    {(anyUnlimited || window.remainingPercent !== null) && (
+                      <span style={{ width: `${anyUnlimited ? 100 : window.remainingPercent}%` }} />
                     )}
                   </div>
                   <div className={styles.meta}>
@@ -121,6 +127,8 @@ export function QuotaPoolSummary({ entries, quotaFor, now: fixedNow }: QuotaPool
                       {unlimited > 0 &&
                         limitedKnown > 0 &&
                         ` · ${t('quota_pool.unlimited_count', { count: unlimited })}`}
+                      {exhausted > 0 &&
+                        ` · ${t('quota_pool.exhausted_count', { count: exhausted })}`}
                       {(window.entitlement ?? 0) > 0 &&
                         ` · ${t('quota_pool.used_of', {
                           used: Math.round(window.used ?? 0).toLocaleString(i18n.language),

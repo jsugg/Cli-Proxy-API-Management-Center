@@ -176,3 +176,99 @@ test('a GitHub Copilot summary card shows monthly buckets and marks unlimited se
   expect(markup).toContain('1/1');
   expect(markup).not.toContain('octo');
 });
+
+const copilotSummary = (
+  seats: Record<string, { unlimited: boolean; remaining?: number; entitlement?: number }>,
+  now: number
+) =>
+  renderToStaticMarkup(
+    createElement(QuotaPoolSummary, {
+      entries: Object.keys(seats).map((name) => ({
+        type: 'copilot' as const,
+        file: { name, type: 'copilot' },
+      })),
+      quotaFor: (entry) => {
+        const seat = seats[entry.file.name];
+        const limited = !seat.unlimited && seat.entitlement !== undefined;
+        return {
+          status: 'success',
+          observedAt: new Date(now).toISOString(),
+          data: {
+            buckets: [
+              {
+                id: 'premium_interactions',
+                unlimited: seat.unlimited,
+                percentRemaining: limited ? (100 * seat.remaining!) / seat.entitlement! : null,
+                remaining: limited ? seat.remaining! : null,
+                entitlement: limited ? seat.entitlement! : null,
+              },
+            ],
+            resetAtMs: now + 6 * 86_400_000,
+            plan: null,
+            login: null,
+            creditsUsed: null,
+          },
+        } as never;
+      },
+      now,
+    })
+  );
+
+const premiumRow = (markup: string) =>
+  markup.slice(markup.indexOf('data-pool-window="premium_interactions"'));
+
+test('an unlimited Copilot seat keeps premium requests Unlimited next to an exhausted one', async () => {
+  await i18n.changeLanguage('en');
+  const markup = premiumRow(
+    copilotSummary(
+      {
+        business: { unlimited: true },
+        enterprise: { unlimited: false, remaining: 0, entitlement: 50_000 },
+      },
+      Date.now()
+    )
+  );
+  expect(markup).toContain('<strong>Unlimited</strong>');
+  expect(markup).toContain('width:100%');
+  expect(markup).toContain('2/2 observed · 1 unlimited · 1 exhausted · 50,000/50,000 used');
+  expect(markup).not.toContain('0%<');
+});
+
+test('limited Copilot seats pool request counts into a remaining percentage', async () => {
+  await i18n.changeLanguage('en');
+  const markup = premiumRow(
+    copilotSummary(
+      {
+        a: { unlimited: false, remaining: 0, entitlement: 50_000 },
+        b: { unlimited: false, remaining: 240, entitlement: 300 },
+      },
+      Date.now()
+    )
+  );
+  // (0 + 240) / (50,000 + 300), not the unweighted mean of 0% and 80%.
+  expect(markup).toContain('<strong>0% remaining</strong>');
+  expect(markup).toContain('1 exhausted · 50,060/50,300 used');
+
+  const balanced = premiumRow(
+    copilotSummary(
+      {
+        a: { unlimited: false, remaining: 100, entitlement: 1000 },
+        b: { unlimited: false, remaining: 140, entitlement: 1000 },
+      },
+      Date.now()
+    )
+  );
+  expect(balanced).toContain('<strong>12% remaining</strong>');
+  expect(balanced).not.toContain('exhausted');
+});
+
+test('all-unlimited Copilot seats read Unlimited without limited detail', async () => {
+  await i18n.changeLanguage('en');
+  const markup = premiumRow(
+    copilotSummary({ a: { unlimited: true }, b: { unlimited: true } }, Date.now())
+  );
+  expect(markup).toContain('<strong>Unlimited</strong>');
+  expect(markup).toContain('2/2 observed<');
+  expect(markup).not.toContain('exhausted');
+  expect(markup).not.toContain('used');
+});

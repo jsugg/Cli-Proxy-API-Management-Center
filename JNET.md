@@ -16,6 +16,11 @@ credential is not a guarantee of remaining quota. Loading and failed requests
 show an explicit unknown state rather than a false zero. Stale responses are
 discarded after connection changes or unmounting.
 
+GitHub Copilot (ported from upstream) needs server v8.1.2 or later. Copilot
+accounts appear on Auth Files, sign in by device code from OAuth Login, show
+premium-request quota on the Quota page (loaded on demand, not auto-refreshed),
+and their `copilot/<id>` routes group under GitHub Copilot in the model list.
+
 Use the pinned Bun version from package.json:
 
 ```sh

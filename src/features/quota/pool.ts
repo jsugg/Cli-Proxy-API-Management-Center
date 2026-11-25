@@ -16,6 +16,8 @@ export interface QuotaPoolWindow {
   known: number;
   /** Known accounts whose bucket is unlimited; they are excluded from remainingPercent. */
   unlimited?: number;
+  /** Known limited accounts with nothing left in the window. */
+  exhausted?: number;
   /** Summed request counts across known limited accounts that report an entitlement. */
   used?: number;
   entitlement?: number;
@@ -170,7 +172,8 @@ const COPILOT_POOL_WINDOWS = {
 
 /**
  * Copilot buckets are monthly request allowances. Unlimited seats are counted,
- * not averaged in; request counts are summed only where GitHub reports them.
+ * not averaged in. Limited seats pool their request counts when every one
+ * reports them, else fall back to the mean of their remaining percentages.
  */
 function buildCopilotPool(
   accounts: readonly QuotaFileEntry[],
@@ -190,6 +193,7 @@ function buildCopilotPool(
         periodKey: 'quota_pool.monthly',
         known: 0,
         unlimited: 0,
+        exhausted: 0,
         used: 0,
         entitlement: 0,
         remainingPercent: null,
@@ -199,6 +203,7 @@ function buildCopilotPool(
     }
     return group;
   };
+  const percentTotals = new Map<QuotaPoolWindow, { sum: number; count: number; counted: number }>();
   const states = accounts.map((account) => quotaFor(account) as CopilotQuotaState | undefined);
   const loaded = states.filter(
     (state): state is CopilotQuotaState =>
@@ -230,18 +235,28 @@ function buildCopilotPool(
           percent > 100
         )
           continue;
-        const limited = group.known - (group.unlimited ?? 0);
-        group.remainingPercent =
-          ((group.remainingPercent ?? 0) * limited + percent) / (limited + 1);
+        const totals = percentTotals.get(group) ?? { sum: 0, count: 0, counted: 0 };
+        totals.sum += percent;
+        totals.count += 1;
+        if (percent <= 0) group.exhausted = (group.exhausted ?? 0) + 1;
         if (bucket.entitlement !== null && bucket.entitlement > 0 && bucket.remaining !== null) {
           group.entitlement = (group.entitlement ?? 0) + bucket.entitlement;
           group.used = (group.used ?? 0) + Math.max(0, bucket.entitlement - bucket.remaining);
+          totals.counted += 1;
         }
+        percentTotals.set(group, totals);
       }
       group.known += 1;
       if (typeof reset === 'number' && Number.isFinite(reset) && reset > now)
         group.nextResetAtMs = Math.min(group.nextResetAtMs ?? reset, reset);
     }
+  }
+  for (const [group, { sum, count, counted }] of percentTotals) {
+    const entitlement = group.entitlement ?? 0;
+    group.remainingPercent =
+      counted === count && entitlement > 0
+        ? Math.min(100, Math.max(0, (100 * (entitlement - (group.used ?? 0))) / entitlement))
+        : sum / count;
   }
   const order = Object.keys(COPILOT_POOL_WINDOWS);
   const windows = [...groups.values()].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));

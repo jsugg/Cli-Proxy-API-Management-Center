@@ -105,6 +105,7 @@
     "monthly": "월간",
     "unlimited": "무제한",
     "unlimited_count": "무제한 {{count}}개",
+    "exhausted_count": "소진 {{count}}개",
     "used_of": "{{used}}/{{entitlement}} 사용"
   },
   "common": {

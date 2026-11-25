@@ -308,6 +308,39 @@ describe('quota identity masking', () => {
     expect(pool.windows[1]).toMatchObject({ known: 2, unlimited: 2, remainingPercent: null });
     expect(pool.windows[2]).toMatchObject({ known: 1, unlimited: 1 });
 
+    const mixed = buildQuotaPools(
+      [copilot('business'), copilot('spent'), copilot('half')],
+      (item) =>
+        ({
+          ...states.business,
+          ...(item.file.name === 'business'
+            ? {}
+            : {
+                data: {
+                  ...(states.business as { data: object }).data,
+                  buckets: [
+                    {
+                      ...bucket('premium_interactions', false, 0),
+                      ...(item.file.name === 'half'
+                        ? { percentRemaining: 50, remaining: 500, entitlement: 1000 }
+                        : {}),
+                    },
+                  ],
+                },
+              }),
+        }) as never,
+      now
+    )[0].windows[0];
+    // Pooled from request counts: 500 left of 1,300, not mean(0%, 50%).
+    expect(mixed).toMatchObject({
+      known: 3,
+      unlimited: 1,
+      exhausted: 1,
+      used: 800,
+      entitlement: 1300,
+    });
+    expect(mixed.remainingPercent).toBeCloseTo((100 * 500) / 1300);
+
     const [empty] = buildQuotaPools([copilot('new')], () => undefined, now);
     expect(empty.windows.map((w) => [w.id, w.known])).toEqual([['premium_interactions', 0]]);
   });

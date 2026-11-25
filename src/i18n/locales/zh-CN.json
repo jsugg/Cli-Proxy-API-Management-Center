@@ -104,6 +104,7 @@
     "monthly": "每月",
     "unlimited": "无限制",
     "unlimited_count": "{{count}} 个无限制",
+    "exhausted_count": "{{count}} 个已用尽",
     "used_of": "已用 {{used}}/{{entitlement}}"
   },
   "common": {

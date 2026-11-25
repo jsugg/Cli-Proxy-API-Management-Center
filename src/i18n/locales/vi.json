@@ -105,6 +105,7 @@
     "monthly": "hằng tháng",
     "unlimited": "Không giới hạn",
     "unlimited_count": "{{count}} không giới hạn",
+    "exhausted_count": "{{count}} đã hết",
     "used_of": "đã dùng {{used}}/{{entitlement}}"
   },
   "common": {

@@ -93,4 +93,16 @@ describe('classifyModels', () => {
     expect(groups.find((group) => group.id === 'stepfun')).toBeUndefined();
     expect(groups.find((group) => group.id === 'other')).toBeUndefined();
   });
+
+  test('groups Copilot routes by namespace, not by the upstream model family', () => {
+    const groups = classifyModels([
+      { name: 'copilot/gpt-5-mini' },
+      { name: 'copilot/claude-sonnet-4.5' },
+      { name: 'gpt-5-mini' },
+    ]);
+
+    expect(namesIn(groups, 'copilot')).toEqual(['copilot/gpt-5-mini', 'copilot/claude-sonnet-4.5']);
+    expect(namesIn(groups, 'gpt')).toEqual(['gpt-5-mini']);
+    expect(groups.find((group) => group.id === 'claude')).toBeUndefined();
+  });
 });
